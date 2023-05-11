@@ -1,0 +1,10 @@
+bert-score==0.3.13
+bitsandbytes==0.38.1
+evaluate==0.4.0
+peft==0.4.0.dev0
+rouge-score==0.1.2
+scikit-learn==1.2.2
+sentencepiece==0.1.99
+torchaudio==2.0.2
+torchvision==0.15.2
+wandb==0.15.2
