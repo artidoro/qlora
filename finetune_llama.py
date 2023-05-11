@@ -729,11 +729,8 @@ def train():
     # Prediction
     if args.do_predict:
         logger.info("*** Predict ***")
-        import pdb; pdb.set_trace()
         prediction_output = trainer.predict(test_dataset=data_module['predict_dataset'],metric_key_prefix="predict")
-        import pdb; pdb.set_trace()
         prediction_metrics = prediction_output.metrics
-        # TODO: detokenize
         predictions = prediction_output.predictions
         predictions = np.where(predictions != -100, predictions, tokenizer.pad_token_id)
         predictions = tokenizer.batch_decode(
@@ -741,7 +738,8 @@ def train():
         )
         with open(os.path.join(args.output_dir, 'predictions.jsonl'), 'w') as fout:
             for i, example in enumerate(data_module['predict_dataset']):
-                example['prediction'] = predictions[i].strip()
+                example['prediction_with_input'] = predictions[i].strip()
+                example['prediction'] = predictions[i].replace(example['input'], '').strip()
                 fout.write(json.dumps(example) + '\n')
         print(prediction_metrics)
         trainer.log_metrics("predict", prediction_metrics)
