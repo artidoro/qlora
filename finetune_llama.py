@@ -141,11 +141,11 @@ class TrainingArguments(transformers.Seq2SeqTrainingArguments):
         metadata={"help": "Quantization data type to use. Should be one of `fp4` or `nf4`."}
     )
     bits: int = field(
-        default=16,
+        default=4,
         metadata={"help": "How many bits to use."}
     )
     lora_r: int = field(
-        default=128,
+        default=64,
         metadata={"help": "Lora R dimension."}
     )
     lora_alpha: float = field(
@@ -163,6 +163,10 @@ class TrainingArguments(transformers.Seq2SeqTrainingArguments):
     max_memory_MB: int = field(
         default=None,
         metadata={"help": "Free memory per gpu."}
+    )
+    report_to: str = field(
+        default='none',
+        metadata={"help": "To use wandb or something else for reporting."}
     )
 
 @dataclass
@@ -262,10 +266,11 @@ def get_accelerate_model(args, checkpoint_dir):
         device_map='auto',
         max_memory=max_memory,
         quantization_config=BitsAndBytesConfig(
-            load_in_4bit=True, 
+            load_in_4bit=args.bits == 4, 
+            load_in_8bit=args.bits == 8, 
             llm_int8_threshold=6.0,
             llm_int8_has_fp16_weight=False,
-            bnb_4bit_compute_dtype=(torch.float32 if args.fp16 else (torch.bfloat16 if args.bf16 else torch.float32)),
+            bnb_4bit_compute_dtype=(torch.float16 if args.fp16 else (torch.bfloat16 if args.bf16 else torch.float32)),
             bnb_4bit_use_double_quant=args.compress_statistics,
             bnb_4bit_quant_type=args.quant_type # {'fp4', 'nf4'}
         ),
@@ -315,17 +320,12 @@ def get_accelerate_model(args, checkpoint_dir):
         if isinstance(module, LoraLayer):
             if args.bf16:
                 module = module.to(torch.bfloat16)
-            #if args.fp16 and module.lora_A.weight.dtype == torch.float32:
-                #module = module.to(torch.float16)
         if 'norm' in name:
             module = module.to(torch.float32)
-        # if 'lm_head' in name or 'embed_tokens' in name:
-        #     import pdb; pdb.set_trace()
-        #     if hasattr(module, 'weight'):
-        #         if args.bf16 and module.weight.dtype == torch.float32:
-        #             module = module.to(torch.bfloat16)
-                #if args.fp16 and module.weight.dtype == torch.float32:
-                    #module = module.to(torch.float16)
+        if 'lm_head' in name or 'embed_tokens' in name:
+            if hasattr(module, 'weight'):
+                if args.bf16 and module.weight.dtype == torch.float32:
+                    module = module.to(torch.bfloat16)
     return model
 
 def print_trainable_parameters(model):
@@ -593,7 +593,7 @@ def train():
     # Tokenizer
     print(args.model_name_or_path, 'tokenizer')
     tokenizer = AutoTokenizer.from_pretrained(
-        '/gscratch/zlab/artidoro/efficient-tuning/tokenizer-model',
+        args.model_name_or_path,
         cache_dir=args.cache_dir,
         padding_side="right",
         use_fast=True,
