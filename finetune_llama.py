@@ -225,7 +225,6 @@ def find_all_linear_names(args, model):
     lora_module_names = set()
     for name, module in model.named_modules():
         if isinstance(module, cls):
-            print(name, module.weight.shape)
             names = name.split('.')
             lora_module_names.add(names[0] if len(names) == 1 else names[-1])
 
