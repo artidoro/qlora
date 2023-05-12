@@ -23,6 +23,7 @@ from typing import Optional, Dict, Sequence
 import numpy as np
 from tqdm import tqdm
 import logging
+import bitsandbytes as bnb
 
 import torch
 import transformers
@@ -60,7 +61,7 @@ DEFAULT_PAD_TOKEN = "[PAD]"
 @dataclass
 class ModelArguments:
     model_name_or_path: Optional[str] = field(
-        default="facebook/opt-125m"
+        default="EleutherAI/pythia-12b"
     )
 
 @dataclass
@@ -132,9 +133,9 @@ class TrainingArguments(transformers.Seq2SeqTrainingArguments):
         default=False,
         metadata={"help": "Use 8-bit adam."}
     )
-    compress_statistics: bool = field(
-        default=False,
-        metadata={"help": "Compress the quantization statistics."}
+    double_quant: bool = field(
+        default=True,
+        metadata={"help": "Compress the quantization statistics through double quantization."}
     )
     quant_type: str = field(
         default="nf4",
@@ -161,13 +162,31 @@ class TrainingArguments(transformers.Seq2SeqTrainingArguments):
         metadata={"help": "Which modules to add adapters to."}
     )
     max_memory_MB: int = field(
-        default=None,
+        default=80000,
         metadata={"help": "Free memory per gpu."}
     )
     report_to: str = field(
         default='none',
         metadata={"help": "To use wandb or something else for reporting."}
     )
+    output_dir: str = field(default='./output', metadata={"help": 'The output dir for logs and checkpoints'})
+    optim: str = field(default='paged_adamw_32bit', metadata={"help": 'The optimizer to be used'})
+    per_device_train_batch_size: int = field(default=1, metadata={"help": 'The training batch size per GPU. Increase for better speed.'})
+    gradient_accumulation_steps: int = field(default=16, metadata={"help": 'How many gradients to accumulate before to perform an optimizer step'})
+    max_steps: int = field(default=10000, metadata={"help": 'How many optimizer update steps to take'})
+    weight_decay: float = field(default=0.0, metadata={"help": 'The L2 weight decay rate of AdamW'}) # use lora dropout instead for regularization if needed
+    learning_rate: float = field(default=0.0002, metadata={"help": 'The learnign rate'})
+    remove_unused_columns: bool = field(default=False, metadata={"help": 'Removed unused columns. Needed to make this codebase work.'})
+    max_grad_norm: float = field(default=0.3, metadata={"help": 'Gradient clipping max norm. This is tuned and works well for all models tested.'})
+    gradient_checkpointing: bool = field(default=True, metadata={"help": 'Use gradient checkpointing. You want to use this.'})
+    do_train: bool = field(default=True, metadata={"help": 'To train or not to train, that is the question?'})
+    lr_scheduler_type: str = field(default='constant', metadata={"help": 'Learning rate schedule. Constant a bit better than cosine, and has advantage for analysis'})
+    warmup_ratio: float = field(default=0.03, metadata={"help": 'Fraction of steps to do a warmup for'})
+    logging_steps: int = field(default=10, metadata={"help": 'The frequency of update steps after which to log the loss'})
+    group_by_length: bool = field(default=True, metadata={"help": 'Group sequences into batches with same length. Saves memory and speeds up training considerably.'})
+    save_strategy: str = field(default='steps', metadata={"help": 'When to save checkpoints'})
+    save_steps: int = field(default=250, metadata={"help": 'How often to save a model'})
+    save_total_limit: int = field(default=40, metadata={"help": 'How many checkpoints to save before the oldest is overwritten'})
 
 @dataclass
 class GenerationArguments:
@@ -201,25 +220,20 @@ class GenerationArguments:
     length_penalty: Optional[float] = field(default=1.0)
     no_repeat_ngram_size: Optional[int] = field(default=0) 
 
-def get_lora_modules(args):
-    if args.lora_modules == 'ffn':
-        modules = ['gate_proj', 'down_proj', 'up_proj']
-    elif args.lora_modules == 'attn':
-        modules = ['q_proj', 'k_proj', 'v_proj', 'o_proj']
-    elif args.lora_modules == 'all':
-        modules = ['gate_proj', 'down_proj', 'up_proj']
-        modules = modules + ['q_proj', 'k_proj', 'v_proj', 'o_proj']
-    elif args.lora_modules == 'all_partial':
-        modules = ['gate_proj', 'down_proj']
-        modules = ['q_proj', 'k_proj', 'v_proj', 'o_proj']
-    elif args.lora_modules == 'baseline':
-        modules = ["q_proj", "v_proj"]
-    elif args.lora_modules == 'outputs':
-        modules = ['o_proj', 'down_proj']
-    else:
-        raise ValueError(f'Lora module string not supported: {args.lora_modules}')
+def find_all_linear_names(args, model):
+    cls = bnb.nn.Linear4bit if args.bits == 4 else (bnb.nn.Linear8bitLt if args.bits == 8 else torch.nn.Linear)
+    lora_module_names = set()
+    for name, module in model.named_modules():
+        if isinstance(module, cls):
+            print(name, module.weight.shape)
+            names = name.split('.')
+            lora_module_names.add(names[0] if len(names) == 1 else names[-1])
 
-    return modules
+
+    if 'lm_head' in lora_module_names: # needed for 16-bit
+        lora_module_names.remove('lm_head')
+    return list(lora_module_names)
+
 
 class SavePeftModelCallback(transformers.TrainerCallback):
     def save_model(self, args, state, kwargs):
@@ -249,7 +263,6 @@ class SavePeftModelCallback(transformers.TrainerCallback):
         self.save_model(args, state, kwargs)
 
 def get_accelerate_model(args, checkpoint_dir):
-    modules = get_lora_modules(args)
 
     n_gpus = torch.cuda.device_count()
     max_memory = f'{args.max_memory_MB}MB'
@@ -257,8 +270,8 @@ def get_accelerate_model(args, checkpoint_dir):
 
     if args.full_finetune: assert args.bits in [16, 32]
 
-    print(args.model_name_or_path)
-    print(torch.float32 if args.fp16 else (torch.bfloat16 if args.bf16 else torch.float32),'dtype used')
+    print(f'loading base model {args.model_name_or_path}...')
+    compute_dtype = (torch.float16 if args.fp16 else (torch.bfloat16 if args.bf16 else torch.float32))
     model = AutoModelForCausalLM.from_pretrained(
         args.model_name_or_path,
         load_in_4bit=args.bits == 4,
@@ -266,20 +279,26 @@ def get_accelerate_model(args, checkpoint_dir):
         device_map='auto',
         max_memory=max_memory,
         quantization_config=BitsAndBytesConfig(
-            load_in_4bit=args.bits == 4, 
-            load_in_8bit=args.bits == 8, 
+            load_in_4bit=args.bits == 4,
+            load_in_8bit=args.bits == 8,
             llm_int8_threshold=6.0,
             llm_int8_has_fp16_weight=False,
-            bnb_4bit_compute_dtype=(torch.float16 if args.fp16 else (torch.bfloat16 if args.bf16 else torch.float32)),
-            bnb_4bit_use_double_quant=args.compress_statistics,
+            bnb_4bit_compute_dtype=compute_dtype,
+            bnb_4bit_use_double_quant=args.double_quant,
             bnb_4bit_quant_type=args.quant_type # {'fp4', 'nf4'}
         ),
         torch_dtype=(torch.float32 if args.fp16 else (torch.bfloat16 if args.bf16 else torch.float32)),
     )
-    print('post', torch.float32 if args.fp16 else (torch.bfloat16 if args.bf16 else torch.float32),'dtype used')
+    if compute_dtype == torch.float16 and args.bits == 4:
+        major, minor = torch.cuda.get_device_capability()
+        if major >= 8:
+            print('='*80)
+            print('Your GPU supports bfloat16, you can accelerate training with the argument --bf16')
+            print('='*80)
 
     setattr(model, 'model_parallel', True)
     setattr(model, 'is_parallelizable', True)
+    modules = find_all_linear_names(args, model)
 
     model.config.torch_dtype=(torch.float32 if args.fp16 else (torch.bfloat16 if args.bf16 else torch.float32))
 
@@ -304,7 +323,7 @@ def get_accelerate_model(args, checkpoint_dir):
                 if 'lora' in name:
                     print(name, p.sum())
         else:
-            print('adding LoRA modules...')
+            print(f'adding LoRA modules on {args.lora_modules} layers...')
             model = get_peft_model(model, config)
 
     if args.gradient_checkpointing:
@@ -328,7 +347,7 @@ def get_accelerate_model(args, checkpoint_dir):
                     module = module.to(torch.bfloat16)
     return model
 
-def print_trainable_parameters(model):
+def print_trainable_parameters(args, model):
     """
     Prints the number of trainable parameters in the model.
     """
@@ -338,6 +357,7 @@ def print_trainable_parameters(model):
         all_param += param.numel()
         if param.requires_grad:
             trainable_params += param.numel()
+    if args.bits == 4: trainable_params /= 2
     print(f"trainable params: {trainable_params} || all params: {all_param} || trainable: {100 * trainable_params / all_param}")
 
 def smart_tokenizer_and_embedding_resize(
@@ -352,7 +372,6 @@ def smart_tokenizer_and_embedding_resize(
     num_new_tokens = tokenizer.add_special_tokens(special_tokens_dict)
     model.resize_token_embeddings(len(tokenizer))
 
-    print(num_new_tokens, len(tokenizer))
     if num_new_tokens > 0:
         input_embeddings = model.get_input_embeddings().weight.data
         output_embeddings = model.get_output_embeddings().weight.data
@@ -576,7 +595,6 @@ def train():
         **vars(model_args), **vars(data_args), **vars(training_args)
     )
     
-    print(args)
 
     checkpoint_dir, completed_training = get_last_checkpoint(args.output_dir)
     if completed_training:
@@ -586,12 +604,11 @@ def train():
     training_args.skip_loading_checkpoint_weights=True
 
     model.config.use_cache = False
-    print_trainable_parameters(model)
+    print_trainable_parameters(args, model)
     print('loaded model')
     set_seed(args.seed)
 
     # Tokenizer
-    print(args.model_name_or_path, 'tokenizer')
     tokenizer = AutoTokenizer.from_pretrained(
         args.model_name_or_path,
         cache_dir=args.cache_dir,
