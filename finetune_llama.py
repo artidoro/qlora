@@ -157,10 +157,6 @@ class TrainingArguments(transformers.Seq2SeqTrainingArguments):
         default=0.0,
         metadata={"help":"Lora dropout."}
     )
-    lora_modules: str = field(
-        default='all',
-        metadata={"help": "Which modules to add adapters to."}
-    )
     max_memory_MB: int = field(
         default=80000,
         metadata={"help": "Free memory per gpu."}
@@ -322,7 +318,7 @@ def get_accelerate_model(args, checkpoint_dir):
                 if 'lora' in name:
                     print(name, p.sum())
         else:
-            print(f'adding LoRA modules on {args.lora_modules} layers...')
+            print(f'adding LoRA modules...')
             model = get_peft_model(model, config)
 
     if args.gradient_checkpointing:
