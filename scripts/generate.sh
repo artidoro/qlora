@@ -1,4 +1,15 @@
-export PATH=$PATH:/gscratch/zlab/artidoro/miniconda3/bin
-source "/gscratch/zlab/artidoro/miniconda3/bin/activate"; conda activate "fp4pr"
-module load cuda/11.6
-python /gscratch/zlab/artidoro/efficient-tuning/PR/fromo/finetune_llama.py   --data_seed 42 --eval_dataset_size 1024  --max_eval_samples 6  --per_device_eval_batch_size 4     --dataloader_num_workers 3  --use_accelerate  --remove_unused_columns False   --lora_r 64  --lora_alpha 16  --lora_modules all  --compress_statistics   --quant_type nf4  --bf16  --max_memory_MB 30000 --bits 4 --model_name_or_path /gscratch/zlab/llama/7B   --dataset alpaca --source_max_len 384 --target_max_len 128       --output_dir /gscratch/zlab/artidoro/efficient-tuning/checkpoints/finetuning/llama/stanford_alpaca/test/fp4testpredict  --seed 0 --cache_dir /gscratch/zlab/artidoro/efficient-tuning/.cache --do_predict --max_new_tokens 64 --do_sample --top_p 0.9 --num_beams 1 --predict_with_generate
+python qlora.py \
+    --model_name_or_path EleutherAI/pythia-12b \
+    --output_dir ./output \
+    --do_train False \
+    --do_eval False \
+    --do_predict True \
+    --predict_with_generate \
+    --per_device_eval_batch_size 4 \
+    --dataset alpaca \
+    --source_max_len 512 \
+    --target_max_len 128 \
+    --max_new_tokens 64 \
+    --do_sample \
+    --top_p 0.9 \
+    --num_beams 1 \
