@@ -513,11 +513,9 @@ def make_data_module(tokenizer: transformers.PreTrainedTokenizer, args) -> Dict:
     elif args.dataset == 'longform':
         dataset = load_dataset("akoksal/LongForm")
     elif args.dataset == 'vicuna':
-        logger.log("Vicuna data was not released.")
-        raise NotImplementedError
+        raise NotImplementedError("Vicuna data was not released.")
     else:
-        logger.log(f"Dataset {args.dataset} not implemented yet.")
-        raise NotImplementedError
+        raise NotImplementedError(f"Dataset {args.dataset} not implemented yet.")
 
     # Split train/eval, reduce size
     if args.do_eval or args.do_predict:
