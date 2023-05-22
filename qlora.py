@@ -52,6 +52,10 @@ class ModelArguments:
     model_name_or_path: Optional[str] = field(
         default="EleutherAI/pythia-12b"
     )
+    trust_remote_code: Optional[bool] = field(
+        default=False,
+        metadata={"help": "Enable unpickling of arbitrary code in AutoModelForCausalLM#from_pretrained."}
+    )
 
 @dataclass
 class DataArguments:
@@ -272,6 +276,7 @@ def get_accelerate_model(args, checkpoint_dir):
             bnb_4bit_quant_type=args.quant_type # {'fp4', 'nf4'}
         ),
         torch_dtype=(torch.float32 if args.fp16 else (torch.bfloat16 if args.bf16 else torch.float32)),
+        trust_remote_code=args.trust_remote_code,
     )
     if compute_dtype == torch.float16 and args.bits == 4:
         major, minor = torch.cuda.get_device_capability()
