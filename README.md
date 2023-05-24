@@ -21,14 +21,18 @@ In addition, we release the Guanaco model family for base LLaMA model sizes of 7
 Access the live demo at the following link (coming soon). 
 
 In the meantime, can you distinguish ChatGPT from Guanaco? Give it a try! 
-You can access [the model response Colab here](https://colab.research.google.com/drive/1kK6xasHiav9nhiRUJjPMZb4fAED4qRHb?usp=sharing) comparing ChatGPT and Guanaco 65B. Setting the `display_model_names=True` flag and runing on all cells displays the model names.
+You can access [the model response Colab here](https://colab.research.google.com/drive/1kK6xasHiav9nhiRUJjPMZb4fAED4qRHb?usp=sharing) comparing ChatGPT and Guanaco 65B on Vicuna prompts. Setting the `display_model_names=True` flag and runing on all cells displays the model names.
 
 Due to resource constraints the demo could be slow. We are working to release fast inference kernels to alleviate inference speed issues.
 
 ## Installation
-Coming soon.
-
-The necessary changes to use QLoRA will soon be merged in the HF transformers library. We will update with installation info as soon as possible.
+To load models in 4bits with transformers and bitsandbytes, you have to install accelerate and transformers from source and make sure you have the latest version of the bitsandbytes library (0.39.0). You can achieve the above with the following commands:
+```bash
+pip install -q -U bitsandbytes
+pip install -q -U git+https://github.com/huggingface/transformers.git
+pip install -q -U git+https://github.com/huggingface/peft.git
+pip install -q -U git+https://github.com/huggingface/accelerate.git
+```
 
 ## Getting Started
 The `qlora.py` code is a starting point for finetuning and inference on various datasets.
@@ -75,7 +79,7 @@ You can access the paged optimizer with the argument `--optim paged_adamw_32bit`
 We provide generations for the models described in the paper for both OA and Vicuna queries in the `eval/generations` folder. These are intended to foster further research on model evaluation and analysis.
 
 Can you distinguish ChatGPT from Guanaco? Give it a try! 
-You can access [the model response Colab here](https://colab.research.google.com/drive/1kK6xasHiav9nhiRUJjPMZb4fAED4qRHb?usp=sharing) comparing ChatGPT and Guanaco 65B. Setting the `display_model_names=True` flag and runing on all cells displays the model names.
+You can access [the model response Colab here](https://colab.research.google.com/drive/1kK6xasHiav9nhiRUJjPMZb4fAED4qRHb?usp=sharing) comparing ChatGPT and Guanaco 65B on Vicuna prompts. Setting the `display_model_names=True` flag and runing on all cells displays the model names.
 
 ## Evaluation
 We include scripts adapted from the FastChat repo to automatically evaluate model generations using GPT-4. We include script for comparisons relative to ChatGPT with scores out of 10 as well as "pairwise comparisons" with three class labeling (win, loose, or tie). These are found in the `eval` folder.
