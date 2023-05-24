@@ -2,7 +2,7 @@
 
 # QLoRA: Efficient Finetuning of Quantized LLMs
 
-| [Paper](https://arxiv.org/abs/2305.14314) | [Adapter Weights](https://huggingface.co/timdettmers) | [Demo](https://huggingface.co/timdettmers) | 
+| [Paper](https://arxiv.org/abs/2305.14314) | [Adapter Weights](https://huggingface.co/timdettmers) | [Demo](https://huggingface.co/spaces/uwnlp/guanaco-playground-tgi) | 
 
 This repo supports the paper "QLoRA: Efficient Finetuning of Quantized LLMs", an effort to democratize access to LLM research. 
 
@@ -19,14 +19,16 @@ We release the resources associated with QLoRA finetuning in this repository und
 In addition, we release the Guanaco model family for base LLaMA model sizes of 7B, 13B, 33B, and 65B. These models are intended for purposes in line with the LLaMA license and require access to the LLaMA models.
 
 ## Demo
-1. Access the live demo at the following [link](https://huggingface.co/timdettmers) (7B is fast, 13b and 33b are slower). Faster demo coming soon. 
+Guanaco is a system purely intended for research purposes and could produce problematic outputs.
+
+1. Access the [live demo here](https://huggingface.co/spaces/uwnlp/guanaco-playground-tgi). 
 
 2. Or host your own Guanaco gradio demo directly in Colab with [this notebook](https://colab.research.google.com/drive/17XEqL1JcmVWjHkT-WczdYkJlNINacwG7?usp=sharing). Works with free GPUs for 7B and 13B models.
 
 3. Alternatively, can you distinguish ChatGPT from Guanaco? Give it a try! 
 You can access [the model response Colab here](https://colab.research.google.com/drive/1kK6xasHiav9nhiRUJjPMZb4fAED4qRHb?usp=sharing) comparing ChatGPT and Guanaco 65B on Vicuna prompts.
 
-Due to resource constraints the 4-bit demo could be slow. We are working to release fast inference kernels to alleviate inference speed issues.
+
 
 ## Installation
 To load models in 4bits with transformers and bitsandbytes, you have to install accelerate and transformers from source and make sure you have the latest version of the bitsandbytes library (0.39.0). You can achieve the above with the following commands:
