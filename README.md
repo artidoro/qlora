@@ -20,6 +20,8 @@ In addition, we release the Guanaco model family for base LLaMA model sizes of 7
 ## Demo
 Access the live demo at the following link (coming soon). 
 
+In the meantime, we also provide a Colab notebook for easy comparison of ChatGPT-3.5 and Guanaco 65B model reponses to Vicuna prompts. You can access [the Colab here](https://colab.research.google.com/drive/1kK6xasHiav9nhiRUJjPMZb4fAED4qRHb?usp=sharing) or find it in the `eval/` folder. You can set the flag `display_model_names=True` and run on all cells to see the model names.
+
 Due to resource constraints the demo could be slow. We are working to release fast inference kernels to alleviate inference speed issues.
 
 ## Installation
