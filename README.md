@@ -4,7 +4,7 @@
 
 This repo supports the paper "QLoRA: Efficient Finetuning of Quantized LLMs", an effort to democratize access to LLM research. 
 
-| [Paper](https://arxiv.org/abs/2305.14314) | [Adapter Weights](https://huggingface.co/timdettmers) | [Demo]() | [Getting Started]() |
+| [Paper](https://arxiv.org/abs/2305.14314) | [Adapter Weights](https://huggingface.co/timdettmers) | Demo | [Getting Started]() |
 
 QLoRA uses [bitsandbytes](https://github.com/TimDettmers/bitsandbytes) for quantization and is integrated with Huggingface's [PEFT](https://github.com/huggingface/peft) and [transformers](https://github.com/huggingface/transformers/) libraries.
 
@@ -18,7 +18,7 @@ We release the resources associated with QLoRA finetuning in this repository und
 In addition, we release the Guanaco model family for base LLaMA model sizes of 7B, 13B, 33B, and 65B. These models are intended for purposes in line with the LLaMA license and require access to the LLaMA models.
 
 ## Demo
-Access the live demo at the [following link](). 
+Access the live demo at the following link (coming soon). 
 
 Due to resource constraints the demo could be slow. We are working to release fast inference kernels to alleviate these problems.
 
