@@ -23,6 +23,9 @@ Access the live demo at the following link (coming soon).
 Due to resource constraints the demo could be slow. We are working to release fast inference kernels to alleviate inference speed issues.
 
 ## Installation
+Coming soon.
+
+The necessary changes to use QLoRA will soon be merged in the HF transformers library. We will update with installation info as soon as possible.
 
 ## Getting Started
 The `qlora.py` code is a starting point for finetuning and inference on various datasets.
