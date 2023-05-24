@@ -19,7 +19,7 @@ We release the resources associated with QLoRA finetuning in this repository und
 In addition, we release the Guanaco model family for base LLaMA model sizes of 7B, 13B, 33B, and 65B. These models are intended for purposes in line with the LLaMA license and require access to the LLaMA models.
 
 ## Demo
-1. Access the live demo at the following [link](https://huggingface.co/timdettmers). 
+1. Access the live demo at the following [link](https://huggingface.co/timdettmers) (7B is fast, 13b and 33b are slower). Faster demo coming soon. 
 
 2. Or host your own Guanaco gradio demo directly in Colab with [this notebook](https://colab.research.google.com/drive/17XEqL1JcmVWjHkT-WczdYkJlNINacwG7?usp=sharing). Works with free GPUs for 7B and 13B models.
 
@@ -117,4 +117,6 @@ Here a list of known issues and bugs. If your issue is not reported here, please
 ```
 
 ## Acknoledgements
+We thank the Huggingface team, in particular Younes Belkada, for their support integrating QLoRA with PEFT and transformers libraries.
+
 This repo builds on the [Stanford Alpaca](https://github.com/tatsu-lab/stanford_alpaca) and [LMSYS FastChat](https://github.com/lm-sys/FastChat) repos.
