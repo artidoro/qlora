@@ -1,6 +1,6 @@
 
 
-# QLORA: Efficient Finetuning of Quantized LLMs
+# QLoRA: Efficient Finetuning of Quantized LLMs
 
 | [Paper](https://arxiv.org/abs/2305.14314) | [Adapter Weights](https://huggingface.co/timdettmers) | [Demo](https://huggingface.co/timdettmers) | 
 
