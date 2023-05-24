@@ -18,10 +18,10 @@ We release the resources associated with QLoRA finetuning in this repository und
 In addition, we release the Guanaco model family for base LLaMA model sizes of 7B, 13B, 33B, and 65B. These models are intended for purposes in line with the LLaMA license and require access to the LLaMA models.
 
 ## Demo
-Access the live demo at the following link (coming soon). 
+Access the live demo at the following link (coming soon). Or you host your own Guanaco gradio demo directly in Colab with [this notebook](https://colab.research.google.com/drive/17XEqL1JcmVWjHkT-WczdYkJlNINacwG7?usp=sharing).
 
 In the meantime, can you distinguish ChatGPT from Guanaco? Give it a try! 
-You can access [the model response Colab here](https://colab.research.google.com/drive/1kK6xasHiav9nhiRUJjPMZb4fAED4qRHb?usp=sharing) comparing ChatGPT and Guanaco 65B on Vicuna prompts. Setting the `display_model_names=True` flag and runing on all cells displays the model names.
+You can access [the model response Colab here](https://colab.research.google.com/drive/1kK6xasHiav9nhiRUJjPMZb4fAED4qRHb?usp=sharing) comparing ChatGPT and Guanaco 65B on Vicuna prompts.
 
 Due to resource constraints the demo could be slow. We are working to release fast inference kernels to alleviate inference speed issues.
 
@@ -79,7 +79,7 @@ You can access the paged optimizer with the argument `--optim paged_adamw_32bit`
 We provide generations for the models described in the paper for both OA and Vicuna queries in the `eval/generations` folder. These are intended to foster further research on model evaluation and analysis.
 
 Can you distinguish ChatGPT from Guanaco? Give it a try! 
-You can access [the model response Colab here](https://colab.research.google.com/drive/1kK6xasHiav9nhiRUJjPMZb4fAED4qRHb?usp=sharing) comparing ChatGPT and Guanaco 65B on Vicuna prompts. Setting the `display_model_names=True` flag and runing on all cells displays the model names.
+You can access [the model response Colab here](https://colab.research.google.com/drive/1kK6xasHiav9nhiRUJjPMZb4fAED4qRHb?usp=sharing) comparing ChatGPT and Guanaco 65B on Vicuna prompts.
 
 ## Evaluation
 We include scripts adapted from the FastChat repo to automatically evaluate model generations using GPT-4. We include script for comparisons relative to ChatGPT with scores out of 10 as well as "pairwise comparisons" with three class labeling (win, loose, or tie). These are found in the `eval` folder.
@@ -93,7 +93,9 @@ Here a list of known issues and bugs. If your issue is not reported here, please
 
 1. 4-bit inference is slow. Currently, our 4-bit inference implementation is not yet integrated with the 4-bit matrix multiplication
 2. Resuming a LoRA training run with the Trainer currently runs on an error
-3. Currently, using `bnb_4bit_compute_type='fp16'` can lead to instabilities. For 7B LLaMA, only 80% of finetuning runs complete without error. We have solutions, but they are not integrated yet into bitsandbytes. 
+3. Currently, using `bnb_4bit_compute_type='fp16'` can lead to instabilities. For 7B LLaMA, only 80% of finetuning runs complete without error. We have solutions, but they are not integrated yet into bitsandbytes.
+4. Make sure that `tokenizer.bos_token_id = 1` to avoid generation issues.
+ 
 
 
 
