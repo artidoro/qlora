@@ -20,7 +20,7 @@ In addition, we release the Guanaco model family for base LLaMA model sizes of 7
 ## Demo
 Access the live demo at the following link (coming soon). 
 
-Due to resource constraints the demo could be slow. We are working to release fast inference kernels to alleviate these problems.
+Due to resource constraints the demo could be slow. We are working to release fast inference kernels to alleviate inference speed issues.
 
 ## Installation
 
@@ -37,11 +37,11 @@ python qlora.py –learning_rate 0.0001 --model_name_or_path <path_or_name>
 ```
 
 ## Quantization
-Quantization parameters are controlled from the `BitsandbytesConfig` similar to the following:
+Quantization parameters are controlled from the `BitsandbytesConfig` ([see HF documenation](https://huggingface.co/docs/transformers/main_classes/quantization#transformers.BitsAndBytesConfig)) as follows:
 - Loading in 4 bits is activated through `load_in_4bit`
-- You can specify the datatype used for the linear layer computations with `bnb_4bit_compute_dtype`
-- To activate nested quantization you can set `bnb_4bit_use_double_quant`
-- And the datatype used for the qunatization is specified with `bnb_4bit_quant_type`. Note that there are two supported quantization datatypes `fp4` (four bit float) and `nf4` (normal four bit float). The latter is theoretically optimal for normally distributed weights and we recommend using `nf4`.
+- The datatype used for the linear layer computations with `bnb_4bit_compute_dtype`
+- Nested quantization is activated through `bnb_4bit_use_double_quant`
+- The datatype used for qunatization is specified with `bnb_4bit_quant_type`. Note that there are two supported quantization datatypes `fp4` (four bit float) and `nf4` (normal four bit float). The latter is theoretically optimal for normally distributed weights and we recommend using `nf4`.
 
 ```python
     model = AutoModelForCausalLM.from_pretrained(
@@ -64,9 +64,14 @@ You can access the paged optimizer with the argument `--optim paged_adamw_32bit`
 
 ## Tutorials and Demonstrations
 
-## Evaluation
 
 ## Sample Outputs
+We provide generations for the models described in the paper for both OA and Vicuna queries in the `eval/generations` folder. These are intended to foster further research on model evaluation and analysis.
+
+## Evaluation
+We provide an adaptation of the evaluation script from the Vicuna repo to obtain GPT-4 ratings of model generations. We include both the script to obtain comparisons relative to ChatGPT with scores out of 10 as well as "pairwise comparisons" with three class labeling (win, loose, or tie). These are found in the `eval` folder.
+
+To facilitate replication of our evaluation, we also release GPT-4 and human ratings of our systems. These are found under `eval/ratings-human` and `eval/ratings-gpt4`.
 
 ## Known Issues and Limitations
 Here a list of known issues and bugs. If your issue is not reported here, please open a new issue and describe the problem.
@@ -89,4 +94,4 @@ Here a list of known issues and bugs. If your issue is not reported here, please
 ```
 
 ## Acknoledgements
-This repo builds on the [Stanford Alpaca](https://github.com/tatsu-lab/stanford_alpaca) and [Berkley FastChat](https://github.com/lm-sys/FastChat) repos.
+This repo builds on the [Stanford Alpaca](https://github.com/tatsu-lab/stanford_alpaca) and [LMSYS FastChat](https://github.com/lm-sys/FastChat) repos.
