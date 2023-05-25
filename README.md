@@ -37,11 +37,12 @@ pip install -q -U bitsandbytes
 pip install -q -U git+https://github.com/huggingface/transformers.git
 pip install -q -U git+https://github.com/huggingface/peft.git
 pip install -q -U git+https://github.com/huggingface/accelerate.git
+pip install -U datasets evaluate scipy nltk
 ```
 
 ## Getting Started
 The `qlora.py` code is a starting point for finetuning and inference on various datasets.
-Basic command for finetuning a baseline model on the Alpaca dataset:
+Basic command for finetuning a baseline (HuggingFace formatted) llama model on the Alpaca dataset:
 ```bash
 python qlora.py --model_name_or_path <path_or_name>
 ```
