@@ -21,7 +21,7 @@ In addition, we release the Guanaco model family for base LLaMA model sizes of 7
 ## Demo
 Guanaco is a system purely intended for research purposes and could produce problematic outputs.
 
-1. Access the [live demo here](https://huggingface.co/spaces/uwnlp/guanaco-playground-tgi). 
+1. Access the [live demo here](https://huggingface.co/spaces/uwnlp/guanaco-playground-tgi). Note this is the 33B model, the 65B model demo will come later.
 
 2. Or host your own Guanaco gradio demo directly in Colab with [this notebook](https://colab.research.google.com/drive/17XEqL1JcmVWjHkT-WczdYkJlNINacwG7?usp=sharing). Works with free GPUs for 7B and 13B models.
 
@@ -78,10 +78,14 @@ Quantization parameters are controlled from the `BitsandbytesConfig` ([see HF do
 You can access the paged optimizer with the argument `--optim paged_adamw_32bit`
 
 ## Tutorials and Demonstrations
-Examples are found under the `examples/` folder.
+Here is [a blog](https://huggingface.co/blog/4bit-transformers-bitsandbytes) discussing 4-bit quantization, QLoRA, and how they are integrated in transformers.
 
-### Colab Gradio Demo
 You can host your own gradio Guanaco demo directly in Colab following [this notebook](https://colab.research.google.com/drive/17XEqL1JcmVWjHkT-WczdYkJlNINacwG7?usp=sharing). 
+In addition, here are Colab notebooks with examples for inference and finetuning using QLoRA:
+- [Inference notebook](https://colab.research.google.com/drive/1VoYNfYDKcKRQRor98Zbf2-9VQTtGJ24k?usp=sharing)
+- [Finetuning notebook](https://colab.research.google.com/drive/1VoYNfYDKcKRQRor98Zbf2-9VQTtGJ24k?usp=sharing)
+
+Other examples are found under the `examples/` folder.
 
 ## Sample Outputs
 We provide generations for the models described in the paper for both OA and Vicuna queries in the `eval/generations` folder. These are intended to foster further research on model evaluation and analysis.
@@ -118,7 +122,8 @@ Here a list of known issues and bugs. If your issue is not reported here, please
 }
 ```
 
-## Acknoledgements
+## Acknowledgements
 We thank the Huggingface team, in particular Younes Belkada, for their support integrating QLoRA with PEFT and transformers libraries.
+We also thank Meta for releasing the LLaMA models without which this work would not have been possible.
 
 This repo builds on the [Stanford Alpaca](https://github.com/tatsu-lab/stanford_alpaca) and [LMSYS FastChat](https://github.com/lm-sys/FastChat) repos.
