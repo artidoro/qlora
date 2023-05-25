@@ -8,7 +8,7 @@ This repo supports the paper "QLoRA: Efficient Finetuning of Quantized LLMs", an
 
 
 
-QLoRA uses [bitsandbytes](https://github.com/TimDettmers/bitsandbytes) for quantization and is integrated with Huggingface's [PEFT](https://github.com/huggingface/peft) and [transformers](https://github.com/huggingface/transformers/) libraries. QLoRA was developed by members of the [University of Washington's UW NLP group](https://twitter.com/uwnlp?s=20).
+QLoRA uses [bitsandbytes](https://github.com/TimDettmers/bitsandbytes) for quantization and is integrated with Hugging Face's [PEFT](https://github.com/huggingface/peft) and [transformers](https://github.com/huggingface/transformers/) libraries. QLoRA was developed by members of the [University of Washington's UW NLP group](https://twitter.com/uwnlp?s=20).
 
 ## Overview
 
@@ -119,6 +119,6 @@ Here a list of known issues and bugs. If your issue is not reported here, please
 ```
 
 ## Acknoledgements
-We thank the Huggingface team, in particular Younes Belkada, for their support integrating QLoRA with PEFT and transformers libraries.
+We thank the Hugging Face team, in particular Younes Belkada, for their support integrating QLoRA with PEFT and transformers libraries.
 
 This repo builds on the [Stanford Alpaca](https://github.com/tatsu-lab/stanford_alpaca) and [LMSYS FastChat](https://github.com/lm-sys/FastChat) repos.
