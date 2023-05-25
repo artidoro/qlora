@@ -23,11 +23,12 @@ from transformers import (
     AutoModelForCausalLM, 
     set_seed, 
     Seq2SeqTrainer,
-    BitsAndBytesConfig
+    BitsAndBytesConfig,
+    LlamaTokenizerFast
+
 )
 from datasets import load_dataset
 import evaluate
-import nltk
 
 from peft import (
     prepare_model_for_int8_training,
@@ -608,18 +609,19 @@ def train():
             tokenizer=tokenizer,
             model=model,
         )
-    if any(key in args.model_name_or_path for key in ['llama', '7B', '13B', '30B', '65B']):
-        # LLaMA tokenizer does not have special tokens set.
-        # Add them to prevent them from being parsed into different tokens.
+    if isinstance(tokenizer, LlamaTokenizerFast):
+        # LLaMA tokenizer may not have correct special tokens set.
+        # Check and add them if missing to prevent them from being parsed into different tokens.
         # Note that these are present in the vocabulary. 
         # Note also that `model.config.pad_token_id` is 0 which corresponds to `<unk>` token.
-        tokenizer.add_special_tokens(
-            {
-                "eos_token": tokenizer.convert_ids_to_tokens(model.config.eos_token_id),
-                "bos_token": tokenizer.convert_ids_to_tokens(model.config.bos_token_id),
-                "unk_token": tokenizer.convert_ids_to_tokens(model.config.pad_token_id), 
-            }
-        )
+        if tokenizer.eos_token_id != model.config.eos_token_id or tokenizer.pad_token_id != model.config.pad_token_id or tokenizer.unk_token_id != model.config.unk_token_id:
+            tokenizer.add_special_tokens(
+                {
+                    "eos_token": tokenizer.convert_ids_to_tokens(model.config.eos_token_id),
+                    "bos_token": tokenizer.convert_ids_to_tokens(model.config.bos_token_id),
+                    "unk_token": tokenizer.convert_ids_to_tokens(model.config.pad_token_id),
+                }
+            )
 
     data_module = make_data_module(tokenizer=tokenizer, args=args)
     trainer = Seq2SeqTrainer(
