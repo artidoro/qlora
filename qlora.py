@@ -521,7 +521,9 @@ def make_data_module(tokenizer: transformers.PreTrainedTokenizer, args) -> Dict:
     elif args.dataset == 'vicuna':
         raise NotImplementedError("Vicuna data was not released.")
     else:
-        raise NotImplementedError(f"Dataset {args.dataset} not implemented yet.")
+        # Own dataset
+        dataset = load_dataset("json", data_files=args.dataset)
+        dataset = dataset.map(extract_alpaca_dataset, remove_columns=['instruction'])
 
     # Split train/eval, reduce size
     if args.do_eval or args.do_predict:
