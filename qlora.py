@@ -708,12 +708,6 @@ def train():
     for k, v in dtypes.items():
         print(k, v, v/total)
 
-    if args.bits < 16:
-        old_state_dict = model.state_dict
-        model.state_dict = (
-            lambda self, *_, **__: get_peft_model_state_dict(self, old_state_dict())
-        ).__get__(model, type(model))
-
     all_metrics = {"run_name": args.run_name}
     # Training
     if args.do_train:
