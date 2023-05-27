@@ -99,6 +99,11 @@ class TrainingArguments(transformers.Seq2SeqTrainingArguments):
         default="auto",
         metadata={"help": "Which cuda device to use. Sets to 'auto' by default to allow accelerate to figure it out."}
     )
+    without_trainer_checkpoint: Optional[bool] = field(
+        default=False,
+        metadata={"help": "Whether to load a trainer checkpoint with the checkpoint_dir or just QLoRA weights from "
+                          "adapter_model subdirectory."}
+    )
     train_on_source: Optional[bool] = field(
         default=False,
         metadata={"help": "Whether to train on the input in addition to the target text."}
@@ -729,6 +734,8 @@ def train():
     all_metrics = {"run_name": args.run_name}
     # Training
     if args.do_train:
+        if args.without_trainer_checkpoint:
+            checkpoint_dir = None
         train_result = trainer.train(resume_from_checkpoint=checkpoint_dir)
         metrics = train_result.metrics
         trainer.log_metrics("train", metrics)
