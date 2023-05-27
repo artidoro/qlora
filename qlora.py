@@ -269,7 +269,7 @@ def get_accelerate_model(args, checkpoint_dir):
         args.model_name_or_path,
         load_in_4bit=args.bits == 4,
         load_in_8bit=args.bits == 8,
-        device_map=args.cuda_device,
+        device_map="auto",
         max_memory=max_memory,
         quantization_config=BitsAndBytesConfig(
             load_in_4bit=args.bits == 4,
@@ -283,6 +283,8 @@ def get_accelerate_model(args, checkpoint_dir):
         torch_dtype=(torch.float32 if args.fp16 else (torch.bfloat16 if args.bf16 else torch.float32)),
         trust_remote_code=args.trust_remote_code,
     )
+    if args.cuda_device != "auto":
+        model.to(args.cuda_device)
     if compute_dtype == torch.float16 and args.bits == 4:
         major, minor = torch.cuda.get_device_capability()
         if major >= 8:
