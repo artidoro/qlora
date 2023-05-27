@@ -256,6 +256,7 @@ class SavePeftModelCallback(transformers.TrainerCallback):
         self.save_model(args, state, kwargs)
 
 def get_accelerate_model(args, checkpoint_dir):
+    import ast
 
     n_gpus = torch.cuda.device_count()
     max_memory = f'{args.max_memory_MB}MB'
@@ -269,7 +270,7 @@ def get_accelerate_model(args, checkpoint_dir):
         args.model_name_or_path,
         load_in_4bit=args.bits == 4,
         load_in_8bit=args.bits == 8,
-        device_map="auto",
+        device_map=ast.literal_eval(args.cuda_device) if args.cuda_device != "auto" else "auto",
         max_memory=max_memory,
         quantization_config=BitsAndBytesConfig(
             load_in_4bit=args.bits == 4,
@@ -283,8 +284,6 @@ def get_accelerate_model(args, checkpoint_dir):
         torch_dtype=(torch.float32 if args.fp16 else (torch.bfloat16 if args.bf16 else torch.float32)),
         trust_remote_code=args.trust_remote_code,
     )
-    if args.cuda_device != "auto":
-        model.to(args.cuda_device)
     if compute_dtype == torch.float16 and args.bits == 4:
         major, minor = torch.cuda.get_device_capability()
         if major >= 8:
