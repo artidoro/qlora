@@ -258,8 +258,11 @@ def get_accelerate_model(args, checkpoint_dir):
     import ast
 
     n_gpus = torch.cuda.device_count()
-    max_memory = f'{args.max_memory_MB}MB'
-    max_memory = {i: max_memory for i in range(n_gpus)}
+    if args.cuda_device == "auto":
+        max_memory = f'{args.max_memory_MB}MB'
+        max_memory = {i: max_memory for i in range(n_gpus)}
+    else:
+        max_memory = ast.literal_eval(args.cuda_device)
 
     if args.full_finetune: assert args.bits in [16, 32]
 
@@ -269,7 +272,7 @@ def get_accelerate_model(args, checkpoint_dir):
         args.model_name_or_path,
         load_in_4bit=args.bits == 4,
         load_in_8bit=args.bits == 8,
-        device_map=ast.literal_eval(args.cuda_device) if args.cuda_device != "auto" else "auto",
+        device_map="auto",
         max_memory=max_memory,
         quantization_config=BitsAndBytesConfig(
             load_in_4bit=args.bits == 4,
