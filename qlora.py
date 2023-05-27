@@ -279,7 +279,7 @@ def get_accelerate_model(args, checkpoint_dir):
         args.model_name_or_path,
         load_in_4bit=args.bits == 4,
         load_in_8bit=args.bits == 8,
-        device_map="auto",
+        device_map=ast.literal_eval(args.cuda_device) if args.cuda_device != "auto" else "auto",
         max_memory=max_memory,
         quantization_config=BitsAndBytesConfig(
             load_in_4bit=args.bits == 4,
