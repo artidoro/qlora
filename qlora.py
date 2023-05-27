@@ -94,6 +94,10 @@ class TrainingArguments(transformers.Seq2SeqTrainingArguments):
     cache_dir: Optional[str] = field(
         default=None
     )
+    cuda_device: Optional[str] = field(
+        default="auto",
+        metadata={"help": "Which cuda device to use. Sets to 'auto' by default to allow accelerate to figure it out."}
+    )
     train_on_source: Optional[bool] = field(
         default=False,
         metadata={"help": "Whether to train on the input in addition to the target text."}
@@ -264,7 +268,7 @@ def get_accelerate_model(args, checkpoint_dir):
         args.model_name_or_path,
         load_in_4bit=args.bits == 4,
         load_in_8bit=args.bits == 8,
-        device_map='auto',
+        device=args.cuda_device,
         max_memory=max_memory,
         quantization_config=BitsAndBytesConfig(
             load_in_4bit=args.bits == 4,
