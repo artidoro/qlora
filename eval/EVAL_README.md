@@ -51,7 +51,6 @@ python eval_gpt_review.py \
     -a generations/oa/gpt-3.5-oa-generations.jsonl generations/oa/65b-guanaco-oa-generations-topp0.9-beam1.jsonl \
     -q prompts/oa_questions.jsonl \
     -p prompts/oa_prompt_threeclass.jsonl \
-    -r prompts/reviewer.jsonl \
     -o ratings/ \
     -m gpt-4
 ```
