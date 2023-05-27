@@ -82,7 +82,7 @@ Here is [a blog](https://huggingface.co/blog/4bit-transformers-bitsandbytes) dis
 
 You can host your own gradio Guanaco demo directly in Colab following [this notebook](https://colab.research.google.com/drive/17XEqL1JcmVWjHkT-WczdYkJlNINacwG7?usp=sharing). 
 In addition, here are Colab notebooks with examples for inference and finetuning using QLoRA:
-- [Inference notebook](https://colab.research.google.com/drive/1VoYNfYDKcKRQRor98Zbf2-9VQTtGJ24k?usp=sharing)
+- [Inference notebook](https://colab.research.google.com/drive/1ge2F1QSK8Q7h0hn3YKuBCOAS0bK8E0wf?usp=sharing)
 - [Finetuning notebook](https://colab.research.google.com/drive/1VoYNfYDKcKRQRor98Zbf2-9VQTtGJ24k?usp=sharing)
 
 Other examples are found under the `examples/` folder.
