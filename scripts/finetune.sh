@@ -8,7 +8,7 @@ python qlora.py \
     --source_max_len 384 \
     --target_max_len 128 \
     --per_device_train_batch_size 4 \
-    --per_device_train_batch_size 4 \
+    --per_device_eval_batch_size 4 \
     --gradient_accumulation_steps 4 \
     --logging_steps 10 \
     --max_steps 10000 \
