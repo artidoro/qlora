@@ -100,6 +100,9 @@ To facilitate the replication of our evaluation and future work in this area, we
 
 More details can be found at `eval/EVAL_README.md`.
 
+## Dataset for Guanaco
+You can find the dataset used to train Guanaco models on HF at [timdettmers/openassistant-guanaco](https://huggingface.co/datasets/timdettmers/openassistant-guanaco).
+
 ## Known Issues and Limitations
 Here a list of known issues and bugs. If your issue is not reported here, please open a new issue and describe the problem.
 
