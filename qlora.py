@@ -603,7 +603,7 @@ def train():
         padding_side="right",
         use_fast=True,
     )
-    if tokenizer.pad_token is None:
+    if tokenizer._pad_token is None:
         smart_tokenizer_and_embedding_resize(
             special_tokens_dict=dict(pad_token=DEFAULT_PAD_TOKEN),
             tokenizer=tokenizer,
