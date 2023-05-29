@@ -35,6 +35,7 @@ from peft import (
     LoraConfig,
     get_peft_model,
     get_peft_model_state_dict,
+    set_peft_model_state_dict,
     PeftModel
 )
 from peft.tuners.lora import LoraLayer
@@ -591,6 +592,31 @@ def train():
     model = get_accelerate_model(args, checkpoint_dir)
     training_args.skip_loading_checkpoint_weights=True
 
+    resume_from_checkpoint = checkpoint_dir
+    if resume_from_checkpoint:
+        # Check the available weights and load them
+        checkpoint_name = os.path.join(
+            checkpoint_dir, "pytorch_model.bin"
+        )  # Full checkpoint
+        if not os.path.exists(checkpoint_name):
+            checkpoint_path = os.path.join(
+                checkpoint_dir, "adapter_model"
+            ) 
+
+            checkpoint_name = os.path.join(
+                checkpoint_path, "adapter_model.bin"
+            )  # only LoRA model - LoRA config above has to fit
+            resume_from_checkpoint = (
+                False  # So the trainer won't try loading its state
+            )
+        # The two files above have a different name depending on how they were saved, but are actually the same.
+        if os.path.exists(checkpoint_name):
+            print(f"Restarting from {checkpoint_name}")
+            adapters_weights = torch.load(checkpoint_name)
+            set_peft_model_state_dict(model, adapters_weights)
+        else:
+            print(f"Checkpoint {checkpoint_name} not found")
+
     model.config.use_cache = False
     print_trainable_parameters(args, model)
     print('loaded model')
@@ -719,7 +745,7 @@ def train():
     all_metrics = {"run_name": args.run_name}
     # Training
     if args.do_train:
-        train_result = trainer.train(resume_from_checkpoint=checkpoint_dir)
+        train_result = trainer.train(resume_from_checkpoint=resume_from_checkpoint)
         metrics = train_result.metrics
         trainer.log_metrics("train", metrics)
         trainer.save_metrics("train", metrics)
