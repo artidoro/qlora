@@ -13,6 +13,7 @@ import numpy as np
 from tqdm import tqdm
 import logging
 import bitsandbytes as bnb
+import pandas as pd
 
 import torch
 import transformers
@@ -465,6 +466,19 @@ def extract_alpaca_dataset(example):
         prompt_format = PROMPT_DICT["prompt_no_input"]
     return {'input': prompt_format.format(**example)}
 
+def local_dataset(dataset_name):
+    if dataset_name.endswith('.json'):
+        full_dataset = Dataset.from_json(path_or_paths=dataset_name)
+    elif dataset_name.endswith('.csv'):
+        full_dataset = Dataset.from_pandas(pd.read_csv(dataset_name))
+    elif dataset_name.endswith('.tsv'):
+        full_dataset = Dataset.from_pandas(pd.read_csv(dataset_name, delimiter='\t'))
+    else:
+        raise ValueError(f"Unsupported dataset format: {dataset_name}")
+    
+    split_dataset = full_dataset.train_test_split(test_size=0.1)
+    return split_dataset
+
 def make_data_module(tokenizer: transformers.PreTrainedTokenizer, args) -> Dict:
     """
     Make dataset and collator for supervised fine-tuning.
@@ -509,10 +523,9 @@ def make_data_module(tokenizer: transformers.PreTrainedTokenizer, args) -> Dict:
         else:
             if os.path.exists(dataset_name):
                 try:
-                    full_dataset = Dataset.from_json(path_or_paths=dataset_name)
-                    split_dataset = full_dataset.train_test_split(test_size=0.1)
                     args.dataset_format = args.dataset_format if args.dataset_format else "alpaca"
-                    return split_dataset
+                    full_dataset = local_dataset(dataset_name)
+                    return full_dataset
                 except:
                     raise ValueError(f"Error loading dataset from {dataset_name}")
             else:
