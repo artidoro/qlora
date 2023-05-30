@@ -176,7 +176,8 @@ class TrainingArguments(transformers.Seq2SeqTrainingArguments):
     group_by_length: bool = field(default=True, metadata={"help": 'Group sequences into batches with same length. Saves memory and speeds up training considerably.'})
     save_strategy: str = field(default='steps', metadata={"help": 'When to save checkpoints'})
     save_steps: int = field(default=250, metadata={"help": 'How often to save a model'})
-    save_total_limit: int = field(default=40, metadata={"help": 'How many checkpoints to save before the oldest is overwritten'})
+    save_total_limit: int = field(default=40, metadata={"help": 'How many checkpoints to save before the oldest is overwritten'}),
+    num_train_epochs: int = field(default=None, metadata={"help": 'How many epoch cycles before stopping training'})
 
 @dataclass
 class GenerationArguments:
@@ -250,6 +251,15 @@ class SavePeftModelCallback(transformers.TrainerCallback):
 
         touch(join(args.output_dir, 'completed'))
         self.save_model(args, state, kwargs)
+
+class StopAfterNEpochsCallback(transformers.TrainerCallback):
+    def __init__(self, n_epochs):
+        super().__init__()
+        self.n_epochs = n_epochs
+
+    def on_epoch_end(self, args, state, control, **kwargs):
+        if state.epoch >= self.n_epochs:
+            control.should_training_stop = True
 
 def get_accelerate_model(args, checkpoint_dir):
 
@@ -698,6 +708,9 @@ def train():
                 trainer.data_collator.source_max_len = source_max_len
 
         trainer.add_callback(MMLUEvalCallback)
+
+    if args.num_train_epochs:
+        trainer.add_callback(StopAfterNEpochsCallback(args.num_train_epochs))
 
     # Verifying the datatypes.
     dtypes = {}
