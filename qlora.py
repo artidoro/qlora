@@ -27,7 +27,7 @@ from transformers import (
     LlamaTokenizerFast
 
 )
-from datasets import load_dataset
+from datasets import load_dataset, Dataset
 import evaluate
 
 from peft import (
@@ -88,6 +88,10 @@ class DataArguments:
     dataset: str = field(
         default='alpaca',
         metadata={"help": "Which dataset to finetune on. See datamodule for options."}
+    )
+    dataset_format: Optional[str] = field(
+        default=None,
+        metadata={"help": "Which dataset format is used. [alpaca|chip2|self-instruct|hh-rlhf]"}
     )
 
 @dataclass
@@ -487,41 +491,56 @@ def make_data_module(tokenizer: transformers.PreTrainedTokenizer, args) -> Dict:
     Not Available:
         - vicuna, not released at the moment.
     """
-    # Load dataset.
-    # Alpaca
-    if args.dataset == 'alpaca':
-        dataset = load_dataset("tatsu-lab/alpaca")
-        dataset = dataset.map(extract_alpaca_dataset, remove_columns=['instruction'])
-    # Alpaca clean
-    elif args.dataset == 'alpaca-clean':
-        dataset = load_dataset("yahma/alpaca-cleaned")
-        dataset = dataset.map(extract_alpaca_dataset, remove_columns=['instruction'])
-    # Chip2
-    elif args.dataset == 'chip2':
-        dataset = load_dataset("laion/OIG", data_files='unified_chip2.jsonl')
-        dataset = dataset.map(lambda x: {
-            'input': x['text'].split('\n<bot>: ')[0].replace('<human>: ', ''),
-            'output': x['text'].split('\n<bot>: ')[1],
-        }, remove_columns=['text', 'metadata'])
-    # Self Instruct
-    elif args.dataset == 'self-instruct':
-        dataset = load_dataset("yizhongw/self_instruct", name='self_instruct')
-        for old, new in [["prompt", "input"], ["completion", "output"]]:
-            dataset = dataset.rename_column(old, new)
-    # Anthropic rlhf
-    elif args.dataset == 'hh-rlhf':
-        dataset = load_dataset("Anthropic/hh-rlhf")
-        dataset = dataset.map(lambda x: {
-            'input': '',
-            'output': x['chosen']
-        }, remove_columns=['chosen', 'rejected'])
-    # LongForm
-    elif args.dataset == 'longform':
-        dataset = load_dataset("akoksal/LongForm")
-    elif args.dataset == 'vicuna':
-        raise NotImplementedError("Vicuna data was not released.")
-    else:
-        raise NotImplementedError(f"Dataset {args.dataset} not implemented yet.")
+    def load_data(dataset_name):
+        if dataset_name == 'alpaca':
+            return load_dataset("tatsu-lab/alpaca")
+        elif dataset_name == 'alpaca-clean':
+            return load_dataset("yahma/alpaca-cleaned")
+        elif dataset_name == 'chip2':
+            return load_dataset("laion/OIG", data_files='unified_chip2.jsonl')
+        elif dataset_name == 'self-instruct':
+            return load_dataset("yizhongw/self_instruct", name='self_instruct')
+        elif dataset_name == 'hh-rlhf':
+            return load_dataset("Anthropic/hh-rlhf")
+        elif dataset_name == 'longform':
+            return load_dataset("akoksal/LongForm")
+        elif dataset_name == 'vicuna':
+            raise NotImplementedError("Vicuna data was not released.")
+        else:
+            if os.path.exists(dataset_name):
+                try:
+                    full_dataset = Dataset.from_json(path_or_paths=dataset_name)
+                    split_dataset = full_dataset.train_test_split(test_size=0.1)
+                    args.dataset_format = args.dataset_format if args.dataset_format else "alpaca"
+                    return split_dataset
+                except:
+                    raise ValueError(f"Error loading dataset from {dataset_name}")
+            else:
+                raise NotImplementedError(f"Dataset {dataset_name} not implemented yet.")
+
+    def format_dataset(dataset, dataset_format):
+        if dataset_format == 'alpaca' or dataset_format == 'alpaca-clean' or (dataset_format is None and args.dataset in ['alpaca', 'alpaca-clean']):
+            return dataset.map(extract_alpaca_dataset, remove_columns=['instruction'])
+        elif dataset_format == 'chip2' or (dataset_format is None and args.dataset == 'chip2'):
+            return dataset.map(lambda x: {
+                'input': x['text'].split('\n<bot>: ')[0].replace('<human>: ', ''),
+                'output': x['text'].split('\n<bot>: ')[1],
+            }, remove_columns=['text', 'metadata'])
+        elif dataset_format == 'self-instruct' or (dataset_format is None and args.dataset == 'self-instruct'):
+            for old, new in [["prompt", "input"], ["completion", "output"]]:
+                dataset = dataset.rename_column(old, new)
+            return dataset
+        elif dataset_format == 'hh-rlhf' or (dataset_format is None and args.dataset == 'hh-rlhf'):
+            return dataset.map(lambda x: {
+                'input': '',
+                'output': x['chosen']
+            }, remove_columns=['chosen', 'rejected'])
+        else:
+            return dataset
+        
+     # Load dataset.
+    dataset = load_data(args.dataset)
+    dataset = format_dataset(dataset, args.dataset_format)
 
     # Split train/eval, reduce size
     if args.do_eval or args.do_predict:
