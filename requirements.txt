@@ -1,6 +1,9 @@
-bert-score==0.3.13
+bitsandbytes==0.39.0
+transformers @ git+https://github.com/huggingface/transformers.git
+peft @ git+https://github.com/huggingface/peft.git
+accelerate @ git+https://github.com/huggingface/accelerate.git
+einops==0.6.1
 evaluate==0.4.0
-rouge-score==0.1.2
 scikit-learn==1.2.2
 sentencepiece==0.1.99
-wandb==0.15.2
+wandb==0.15.3
