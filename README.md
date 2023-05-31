@@ -54,6 +54,19 @@ For models larger than 13B, we recommend adjusting the learning rate:
 python qlora.py –learning_rate 0.0001 --model_name_or_path <path_or_name>
 ```
 
+### Using Local Datasets
+
+You can specify the path to your dataset using the `--dataset` argument. If the `--dataset_format` argument is not set, it will default to the Alpaca format. Here are a few examples:
+
+- Training with an *alpaca* format dataset:
+  ```bash
+  python qlora.py --dataset="path/to/your/dataset"
+  ```
+- Training with a *self-instruct* format dataset:
+   ```bash
+   python qlora.py --dataset="path/to/your/dataset" --dataset_format="self-instruct"
+   ```
+
 ## Quantization
 Quantization parameters are controlled from the `BitsandbytesConfig` ([see HF documenation](https://huggingface.co/docs/transformers/main_classes/quantization#transformers.BitsAndBytesConfig)) as follows:
 - Loading in 4 bits is activated through `load_in_4bit`
