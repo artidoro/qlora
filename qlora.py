@@ -95,6 +95,10 @@ class DataArguments:
         metadata={"help": "Whether when doing evaluation, the entered dataset is entirely evaluation split, no need for"
                           " additional train/val/eval split."}
     )
+    test_last_checkpoint: Optional[bool] = field(
+        default=False,
+        metadata={"help": "Whether to test the last checkpoint or the best checkpoint for eval only."}
+    )
 
 @dataclass
 class TrainingArguments(transformers.Seq2SeqTrainingArguments):
@@ -581,10 +585,10 @@ def make_data_module(tokenizer: transformers.PreTrainedTokenizer, args) -> Dict:
         data_collator=data_collator
     )
 
-def get_last_checkpoint(checkpoint_dir):
+def get_last_checkpoint(checkpoint_dir, test_last_checkpoint=False):
     if isdir(checkpoint_dir):
         is_completed = exists(join(checkpoint_dir, 'completed'))
-        if is_completed: return None, True # already finished
+        if is_completed and not test_last_checkpoint: return None, True # already finished
         max_step = 0
         for filename in os.listdir(checkpoint_dir):
             if isdir(join(checkpoint_dir, filename)) and filename.startswith('checkpoint'):
@@ -607,7 +611,7 @@ def train():
     )
     
 
-    checkpoint_dir, completed_training = get_last_checkpoint(args.output_dir)
+    checkpoint_dir, completed_training = get_last_checkpoint(args.output_dir, args.test_last_checkpoint)
     if completed_training:
         print('Detected that training was already completed!')
 
