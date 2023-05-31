@@ -547,7 +547,7 @@ def make_data_module(tokenizer: transformers.PreTrainedTokenizer, args) -> Dict:
     # Split train/eval, reduce size
     if args.do_eval or args.do_predict:
         if args.eval_only_dataset:
-            eval_dataset = dataset
+            eval_dataset = dataset["train"]
         elif 'eval' in dataset:
             eval_dataset = dataset['eval']
         else:
