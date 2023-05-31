@@ -90,6 +90,11 @@ class DataArguments:
         default='alpaca',
         metadata={"help": "Which dataset to finetune on. See datamodule for options."}
     )
+    eval_only_dataset: Optional[bool] = field(
+        default=False,
+        metadata={"help": "Whether when doing evaluation, the entered dataset is entirely evaluation split, no need for"
+                          " additional train/val/eval split."}
+    )
 
 @dataclass
 class TrainingArguments(transformers.Seq2SeqTrainingArguments):
@@ -541,7 +546,9 @@ def make_data_module(tokenizer: transformers.PreTrainedTokenizer, args) -> Dict:
 
     # Split train/eval, reduce size
     if args.do_eval or args.do_predict:
-        if 'eval' in dataset:
+        if args.eval_only_dataset:
+            eval_dataset = dataset
+        elif 'eval' in dataset:
             eval_dataset = dataset['eval']
         else:
             print('Splitting train dataset in train and validation according to `eval_dataset_size`')
