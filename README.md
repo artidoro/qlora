@@ -48,7 +48,7 @@ For models larger than 13B, we recommend adjusting the learning rate:
 python qlora.py –learning_rate 0.0001 --model_name_or_path <path_or_name>
 ```
 
-## Guanaco Finetuning
+### Guanaco Finetuning
 You can select `--dataset oasst1` to load the OpenAssistant dataset that was used to train Guanaco. You can also find it on HF at [timdettmers/openassistant-guanaco](https://huggingface.co/datasets/timdettmers/openassistant-guanaco).
 
 We include scripts to reproduce the hyperparameters of Guanaco model training for various sizes at `./scripts/finetune_guanaco*.sh`. Make sure to (1) edit the `model_name_or_path` to your LLaMA checkpoint (2) adjust `per_device_train_batch_size` and `gradient_accumulation_steps` so that they multiply to 16 and fit on your device. 
@@ -66,7 +66,17 @@ You can specify the path to your dataset using the `--dataset` argument. If the 
    python qlora.py --dataset="path/to/your/dataset" --dataset_format="self-instruct"
    ```
 
-## Quantization
+### Multi GPU
+Multi GPU training and inference work out-of-the-box with Hugging Face's Accelerate. Note that the `per_device_train_batch_size` and `per_device_eval_batch_size` arguments are  global batch sizes unlike what their name suggest.
+
+When loading a model for training or inference on multiple GPUs you should pass something like the following to `AutoModelForCausalLM.from_pretrained()`:
+```python
+device_map = "auto"
+max_memory = {i: '46000MB' for i in range(torch.cuda.device_count())}
+```
+
+
+### Quantization
 Quantization parameters are controlled from the `BitsandbytesConfig` ([see HF documenation](https://huggingface.co/docs/transformers/main_classes/quantization#transformers.BitsAndBytesConfig)) as follows:
 - Loading in 4 bits is activated through `load_in_4bit`
 - The datatype used for the linear layer computations with `bnb_4bit_compute_dtype`
@@ -89,10 +99,10 @@ Quantization parameters are controlled from the `BitsandbytesConfig` ([see HF do
     )
 ```
 
-## Paged Optimizer
+### Paged Optimizer
 You can access the paged optimizer with the argument `--optim paged_adamw_32bit`
 
-## Tutorials and Demonstrations
+### Tutorials and Demonstrations
 Here is [a blog](https://huggingface.co/blog/4bit-transformers-bitsandbytes) discussing 4-bit quantization, QLoRA, and how they are integrated in transformers.
 
 You can host your own gradio Guanaco demo directly in Colab following [this notebook](https://colab.research.google.com/drive/17XEqL1JcmVWjHkT-WczdYkJlNINacwG7?usp=sharing). 
