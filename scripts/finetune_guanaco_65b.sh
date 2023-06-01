@@ -1,5 +1,5 @@
 python qlora.py \
-    --model_name_or_path "path/to/your/llama/checkpoint" \
+    --model_name_or_path huggyllama/llama-65b \
     --output_dir ./output/guanaco-65b \
     --logging_steps 10 \
     --save_strategy steps \
@@ -9,7 +9,7 @@ python qlora.py \
     --evaluation_strategy steps \
     --eval_dataset_size 1024 \
     --max_eval_samples 1000 \
-    --per_device_eval_batch_size 4 \
+    --per_device_eval_batch_size 1 \
     --max_new_tokens 32 \
     --dataloader_num_workers 3 \
     --group_by_length \
@@ -31,8 +31,8 @@ python qlora.py \
     --dataset oasst1 \
     --source_max_len 16 \
     --target_max_len 512 \
-    --per_device_train_batch_size 4 \
-    --gradient_accumulation_steps 4 \
+    --per_device_train_batch_size 1 \
+    --gradient_accumulation_steps 16 \
     --max_steps 1875 \
     --eval_steps 187 \
     --learning_rate 0.0001 \

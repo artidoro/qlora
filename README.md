@@ -48,6 +48,8 @@ For models larger than 13B, we recommend adjusting the learning rate:
 python qlora.py –learning_rate 0.0001 --model_name_or_path <path_or_name>
 ```
 
+To replicate our Guanaco models see below.
+
 ### Tutorials and Demonstrations
 Here is [a blog](https://huggingface.co/blog/4bit-transformers-bitsandbytes) discussing 4-bit quantization, QLoRA, and how they are integrated in transformers.
 
@@ -87,7 +89,7 @@ You can access the paged optimizer with the argument `--optim paged_adamw_32bit`
 ### Guanaco Finetuning
 You can select `--dataset oasst1` to load the OpenAssistant dataset that was used to train Guanaco. You can also find it on HF at [timdettmers/openassistant-guanaco](https://huggingface.co/datasets/timdettmers/openassistant-guanaco).
 
-We include scripts to reproduce the hyperparameters of Guanaco model training for various sizes at `./scripts/finetune_guanaco*.sh`. Make sure to (1) edit the `model_name_or_path` to your LLaMA checkpoint (2) adjust `per_device_train_batch_size` and `gradient_accumulation_steps` so that they multiply to 16 and fit on your device. 
+We include scripts to reproduce the hyperparameters of Guanaco model training for various sizes at `./scripts/finetune_guanaco*.sh`. Make sure to adjust `per_device_train_batch_size` and `gradient_accumulation_steps` so that their product is 16 and training fits on your GPUs. 
 
 ### Using Local Datasets
 
