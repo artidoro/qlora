@@ -8,7 +8,7 @@ This repo supports the paper "QLoRA: Efficient Finetuning of Quantized LLMs", an
 
 
 
-QLoRA uses [bitsandbytes](https://github.com/TimDettmers/bitsandbytes) for quantization and is integrated with Huggingface's [PEFT](https://github.com/huggingface/peft) and [transformers](https://github.com/huggingface/transformers/) libraries. QLoRA was developed by members of the [University of Washington's UW NLP group](https://twitter.com/uwnlp?s=20).
+QLoRA uses [bitsandbytes](https://github.com/TimDettmers/bitsandbytes) for quantization and is integrated with Hugging Face's [PEFT](https://github.com/huggingface/peft) and [transformers](https://github.com/huggingface/transformers/) libraries. QLoRA was developed by members of the [University of Washington's UW NLP group](https://twitter.com/uwnlp?s=20).
 
 ## Overview
 
@@ -47,6 +47,11 @@ For models larger than 13B, we recommend adjusting the learning rate:
 ```bash
 python qlora.py –learning_rate 0.0001 --model_name_or_path <path_or_name>
 ```
+
+## Guanaco Finetuning
+You can select `--dataset oasst1` to load the OpenAssistant dataset that was used to train Guanaco. You can also find it on HF at [timdettmers/openassistant-guanaco](https://huggingface.co/datasets/timdettmers/openassistant-guanaco).
+
+We include scripts to reproduce the hyperparameters of Guanaco model training for various sizes at `./scripts/finetune_guanaco*.sh`. Make sure to (1) edit the `model_name_or_path` to your LLaMA checkpoint (2) adjust `per_device_train_batch_size` and `gradient_accumulation_steps` so that they multiply to 16 and fit on your device. 
 
 ### Using Local Datasets
 
@@ -110,16 +115,14 @@ To facilitate the replication of our evaluation and future work in this area, we
 
 More details can be found at `eval/EVAL_README.md`.
 
-## Dataset for Guanaco
-You can find the dataset used to train Guanaco models on HF at [timdettmers/openassistant-guanaco](https://huggingface.co/datasets/timdettmers/openassistant-guanaco).
-
 ## Known Issues and Limitations
 Here a list of known issues and bugs. If your issue is not reported here, please open a new issue and describe the problem.
 
 1. 4-bit inference is slow. Currently, our 4-bit inference implementation is not yet integrated with the 4-bit matrix multiplication
-2. Resuming a LoRA training run with the Trainer currently runs on an error
+2. Resuming a LoRA training run with the Trainer currently not supported by HF.
 3. Currently, using `bnb_4bit_compute_type='fp16'` can lead to instabilities. For 7B LLaMA, only 80% of finetuning runs complete without error. We have solutions, but they are not integrated yet into bitsandbytes.
 4. Make sure that `tokenizer.bos_token_id = 1` to avoid generation issues.
+5. If you get an this [issue](https://github.com/artidoro/qlora/issues/82) ("illegal memory access") then you should use a newer HF LLaMA conversion or downgrade your PyTorch version.
  
 
 
@@ -136,7 +139,7 @@ Here a list of known issues and bugs. If your issue is not reported here, please
 ```
 
 ## Acknowledgements
-We thank the Huggingface team, in particular Younes Belkada, for their support integrating QLoRA with PEFT and transformers libraries.
+We thank the Hugging Face team, in particular Younes Belkada, for their support integrating QLoRA with PEFT and transformers libraries.
 We also thank Meta for releasing the LLaMA models without which this work would not have been possible.
 
 This repo builds on the [Stanford Alpaca](https://github.com/tatsu-lab/stanford_alpaca) and [LMSYS FastChat](https://github.com/lm-sys/FastChat) repos.
