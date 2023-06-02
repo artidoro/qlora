@@ -95,7 +95,7 @@ class DataArguments:
         metadata={"help": "Whether when doing evaluation, the entered dataset is entirely evaluation split, no need for"
                           " additional train/val/eval split."}
     )
-    test_last_checkpoint: Optional[bool] = field(
+    test_checkpoint: Optional[bool] = field(
         default=False,
         metadata={"help": "Whether to test the last checkpoint or the best checkpoint for eval only."}
     )
@@ -330,7 +330,7 @@ def get_accelerate_model(args, checkpoint_dir):
     )
     if not args.full_finetune:
         if checkpoint_dir is not None:
-            print("Loading adapters from checkpoint.")
+            print("Loading adapters from checkpoint:" + checkpoint_dir)
             model = PeftModel.from_pretrained(model, join(checkpoint_dir, 'adapter_model'))
             for name, p in model.named_parameters():
                 if 'lora' in name:
@@ -611,7 +611,7 @@ def train():
     )
     
 
-    checkpoint_dir, completed_training = get_last_checkpoint(args.output_dir, args.test_last_checkpoint)
+    checkpoint_dir, completed_training = get_last_checkpoint(args.output_dir, args.test_checkpoint)
     if completed_training:
         print('Detected that training was already completed!')
 
@@ -651,6 +651,22 @@ def train():
             )
 
     data_module = make_data_module(tokenizer=tokenizer, args=args)
+    if args.eval_only_dataset:
+        outputs = []
+        with torch.no_grad():
+            for data in data_module['eval_dataset']:
+                generation_output = model.generate(
+                    input_ids=data_module['data_collator'](data),
+                    generation_config=generation_args,
+                    return_dict_in_generate=True,
+                    output_scores=True
+                )
+                s = generation_output.sequences[0]
+                outputs.append(tokenizer.decode(s))
+        with open(os.path.join(args.output_dir, "generate_outputs.json"), "w") as fout:
+            fout.write(json.dumps(outputs, indent=2))
+        return
+
     trainer = Seq2SeqTrainer(
         model=model, 
         tokenizer=tokenizer,
