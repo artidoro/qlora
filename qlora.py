@@ -656,6 +656,8 @@ def train():
         outputs = []
         with torch.no_grad():
             for data in data_module['predict_dataset']:
+                print(data)
+                print(type(data))
                 generation_output = model.generate(
                     input_ids=data_module['data_collator'](data),
                     generation_config=generation_args,
