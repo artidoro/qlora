@@ -299,8 +299,8 @@ def get_accelerate_model(args, checkpoint_dir):
         args.model_name_or_path,
         load_in_4bit=args.bits == 4 and not args.merge_and_unload,
         load_in_8bit=args.bits == 8 and not args.merge_and_unload,
-        device_map="auto",
-        max_memory=max_memory,
+        device_map="auto" if not args.merge_and_unload else None,
+        max_memory=max_memory if not args.merge_and_unload else None,
         quantization_config=BitsAndBytesConfig(
             load_in_4bit=args.bits == 4 and not args.merge_and_unload,
             load_in_8bit=args.bits == 8 and not args.merge_and_unload,
@@ -309,7 +309,7 @@ def get_accelerate_model(args, checkpoint_dir):
             bnb_4bit_compute_dtype=compute_dtype,
             bnb_4bit_use_double_quant=args.double_quant,
             bnb_4bit_quant_type=args.quant_type # {'fp4', 'nf4'}
-        ),
+        ) if not args.merge_and_unload else None,
         torch_dtype=(torch.float32 if args.fp16 else (torch.bfloat16 if args.bf16 else torch.float32)),
         trust_remote_code=args.trust_remote_code,
     )
