@@ -660,7 +660,7 @@ def train():
         outputs = []
         from transformers import GenerationConfig
         with torch.no_grad():
-            conf = GenerationConfig.from_dict(generation_args)
+            conf = GenerationConfig.from_dict(generation_args.__dict__)
             generation_output = model.generate(
                 input_ids=data_module['data_collator'](data_module['predict_dataset']),
                 generation_config=conf,
