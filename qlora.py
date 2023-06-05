@@ -300,8 +300,8 @@ def get_accelerate_model(args, checkpoint_dir):
         device_map="auto",
         max_memory=max_memory,
         quantization_config=BitsAndBytesConfig(
-            load_in_4bit=args.bits == 4,
-            load_in_8bit=args.bits == 8,
+            load_in_4bit=args.bits == 4 and not args.merge_and_unload,
+            load_in_8bit=args.bits == 8 and not args.merge_and_unload,
             llm_int8_threshold=6.0,
             llm_int8_has_fp16_weight=False,
             bnb_4bit_compute_dtype=compute_dtype,
