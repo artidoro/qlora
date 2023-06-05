@@ -123,6 +123,10 @@ class TrainingArguments(transformers.Seq2SeqTrainingArguments):
         metadata={"help": "Whether to load a trainer checkpoint with the checkpoint_dir or just QLoRA weights from "
                           "adapter_model subdirectory."}
     )
+    big_gpu: Optional[bool] = field(
+        default=False,
+        metadata={"help": "Whether using a big GPU (e.g. 32GB or over)."}
+    )
     train_on_source: Optional[bool] = field(
         default=False,
         metadata={"help": "Whether to train on the input in addition to the target text."}
@@ -288,7 +292,7 @@ def get_accelerate_model(args, checkpoint_dir):
 
     n_gpus = torch.cuda.device_count()
     if args.merge_and_unload:
-        max_memory = {'cpu': f'{args.max_memory_MB}MB'}
+        max_memory = {'cpu': f'{2*args.max_memory_MB}MB'}
     elif args.cuda_device == "auto":
         max_memory = f'{args.max_memory_MB}MB'
         max_memory = {i: max_memory for i in range(n_gpus)}
@@ -303,7 +307,7 @@ def get_accelerate_model(args, checkpoint_dir):
         args.model_name_or_path,
         load_in_4bit=args.bits == 4 and not args.merge_and_unload,
         load_in_8bit=args.bits == 8 and not args.merge_and_unload,
-        device_map="auto" if not args.merge_and_unload else "cpu",
+        device_map="auto" if not args.merge_and_unload or args.big_gpu else "cpu",
         max_memory=max_memory if not args.merge_and_unload else None,
         quantization_config=BitsAndBytesConfig(
             load_in_4bit=args.bits == 4 and not args.merge_and_unload,
@@ -669,7 +673,7 @@ def train():
             )
 
     if args.merge_and_unload:
-        model.merge_and_unload()
+        model = model.merge_and_unload()
         model.save_pretrained(args.output_dir+'/merged')
         return
 
