@@ -655,17 +655,15 @@ def train():
     if args.eval_only_dataset:
         outputs = []
         with torch.no_grad():
-            for data in data_module['predict_dataset']:
-                print(data)
-                print(type(data))
-                generation_output = model.generate(
-                    input_ids=data_module['data_collator'](data),
-                    generation_config=generation_args,
-                    return_dict_in_generate=True,
-                    output_scores=True
-                )
-                s = generation_output.sequences[0]
-                outputs.append(tokenizer.decode(s))
+            generation_output = model.generate(
+                input_ids=data_module['data_collator'](data_module['predict_dataset']),
+                generation_config=generation_args,
+                return_dict_in_generate=True,
+                output_scores=True
+            )
+            s = generation_output.sequences[0]
+            outputs.append(tokenizer.decode(s))
+            print(outputs)
         with open(os.path.join(args.output_dir, "generate_outputs.json"), "w") as fout:
             fout.write(json.dumps(outputs, indent=2))
         return
