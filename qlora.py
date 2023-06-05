@@ -286,6 +286,8 @@ def get_accelerate_model(args, checkpoint_dir):
     if args.cuda_device == "auto":
         max_memory = f'{args.max_memory_MB}MB'
         max_memory = {i: max_memory for i in range(n_gpus)}
+        if args.merge_and_unload:
+            max_memory['cpu'] = f'{args.max_memory_MB}MB'
     else:
         max_memory = ast.literal_eval(args.cuda_device)
 
