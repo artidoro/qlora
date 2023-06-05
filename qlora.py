@@ -445,7 +445,7 @@ class DataCollatorForCausalLM(object):
         labels = pad_sequence(labels, batch_first=True, padding_value=IGNORE_INDEX) if not self.predict_with_generate else None
         data_dict = {
             'input_ids': input_ids,
-            'attention_mask':input_ids.ne(self.tokenizer.pad_token_id),
+            'attention_mask': input_ids.ne(self.tokenizer.pad_token_id),
         }
         if labels is not None:
             data_dict['labels'] = labels
@@ -661,7 +661,7 @@ def train():
         from transformers import GenerationConfig
         with torch.no_grad():
             conf = GenerationConfig.from_dict(generation_args.__dict__)
-            print(data_module['data_collator'](data_module['predict_dataset']))
+            print(conf)
             generation_output = model.generate(
                 input_ids=data_module['data_collator'](data_module['predict_dataset'])['input_ids'],
                 generation_config=conf,
