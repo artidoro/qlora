@@ -658,10 +658,12 @@ def train():
     print(data_module)
     if args.eval_only_dataset:
         outputs = []
+        from transformers import GenerationConfig
         with torch.no_grad():
+            conf = GenerationConfig.from_dict(generation_args)
             generation_output = model.generate(
                 input_ids=data_module['data_collator'](data_module['predict_dataset']),
-                generation_config=generation_args,
+                generation_config=conf,
                 return_dict_in_generate=True,
                 output_scores=True
             )
