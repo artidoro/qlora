@@ -663,7 +663,7 @@ def train():
             conf = GenerationConfig.from_dict(generation_args.__dict__)
             print(conf)
             generation_output = model.generate(
-                input_ids=data_module['data_collator'](data_module['predict_dataset'])['input_ids'],
+                input_ids=data_module['data_collator'](data_module['predict_dataset'])['input_ids'].to(model.device),
                 generation_config=conf,
                 return_dict_in_generate=True,
                 output_scores=True
