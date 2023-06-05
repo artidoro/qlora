@@ -100,7 +100,7 @@ class TrainingArguments(transformers.Seq2SeqTrainingArguments):
         default=None
     )
     train_on_source: Optional[bool] = field(
-        default=False,
+        default=True,
         metadata={"help": "Whether to train on the input in addition to the target text."}
     )
     mmlu_split: Optional[str] = field(
