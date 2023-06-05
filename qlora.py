@@ -659,28 +659,12 @@ def train():
                 }
             )
 
-    data_module = make_data_module(tokenizer=tokenizer, args=args)
-    print(data_module)
-    if args.eval_only_dataset:
-        if args.merge_and_unload:
-            model.merge_and_unload()
-        outputs = []
-        from transformers import GenerationConfig
-        with torch.no_grad():
-            conf = GenerationConfig.from_dict(generation_args.__dict__)
-            print(conf)
-            generation_output = model.generate(
-                input_ids=data_module['data_collator'](data_module['predict_dataset'])['input_ids'].to(model.device),
-                generation_config=conf,
-                return_dict_in_generate=True,
-                output_scores=True
-            )
-            s = generation_output.sequences[0]
-            outputs.append(tokenizer.decode(s))
-            print(outputs)
-        with open(os.path.join(args.output_dir, "generate_outputs.json"), "w") as fout:
-            fout.write(json.dumps(outputs, indent=2))
+    if args.merge_and_unload:
+        model.merge_and_unload()
+        model.save_pretrained(args.output_dir+'/merged')
         return
+
+    data_module = make_data_module(tokenizer=tokenizer, args=args)
 
     trainer = Seq2SeqTrainer(
         model=model, 
@@ -815,6 +799,115 @@ def train():
     if (args.do_train or args.do_eval or args.do_predict):
         with open(os.path.join(args.output_dir, "metrics.json"), "w") as fout:
             fout.write(json.dumps(all_metrics))
+
+
+def test():
+    hfparser = transformers.HfArgumentParser((
+        ModelArguments, DataArguments, TrainingArguments, GenerationArguments
+    ))
+    model_args, data_args, training_args, generation_args, extra_args = \
+        hfparser.parse_args_into_dataclasses(return_remaining_strings=True)
+    training_args.generation_config = transformers.GenerationConfig(**vars(generation_args))
+    args = argparse.Namespace(
+        **vars(model_args), **vars(data_args), **vars(training_args)
+    )
+
+    n_gpus = torch.cuda.device_count()
+    max_memory = f'{args.max_memory_MB}MB'
+    max_memory = {i: max_memory for i in range(n_gpus)}
+
+    if args.full_finetune: assert args.bits in [16, 32]
+
+    print(f'loading base model {args.model_name_or_path}...')
+    compute_dtype = (torch.float16 if args.fp16 else (torch.bfloat16 if args.bf16 else torch.float32))
+    model = AutoModelForCausalLM.from_pretrained(
+        args.model_name_or_path,
+        load_in_4bit=args.bits == 4,
+        load_in_8bit=args.bits == 8,
+        device_map="auto",
+        max_memory=max_memory,
+        quantization_config=BitsAndBytesConfig(
+            load_in_4bit=args.bits == 4,
+            load_in_8bit=args.bits == 8,
+            llm_int8_threshold=6.0,
+            llm_int8_has_fp16_weight=False,
+            bnb_4bit_compute_dtype=compute_dtype,
+            bnb_4bit_use_double_quant=args.double_quant,
+            bnb_4bit_quant_type=args.quant_type  # {'fp4', 'nf4'}
+        ),
+        torch_dtype=(torch.float32 if args.fp16 else (torch.bfloat16 if args.bf16 else torch.float32)),
+        trust_remote_code=args.trust_remote_code,
+    )
+    if compute_dtype == torch.float16 and args.bits == 4:
+        major, minor = torch.cuda.get_device_capability()
+        if major >= 8:
+            print('=' * 80)
+            print('Your GPU supports bfloat16, you can accelerate training with the argument --bf16')
+            print('=' * 80)
+
+    setattr(model, 'model_parallel', True)
+    setattr(model, 'is_parallelizable', True)
+
+    model.config.torch_dtype = (torch.float32 if args.fp16 else (torch.bfloat16 if args.bf16 else torch.float32))
+
+    if not args.full_finetune:
+        model = prepare_model_for_int8_training(model, use_gradient_checkpointing=args.gradient_checkpointing)
+    if args.gradient_checkpointing:
+        model.gradient_checkpointing_enable()
+
+    training_args.skip_loading_checkpoint_weights = True
+
+    model.config.use_cache = False
+    print_trainable_parameters(args, model)
+    print('loaded model')
+    set_seed(args.seed)
+
+    # Tokenizer
+    tokenizer = AutoTokenizer.from_pretrained(
+        args.model_name_or_path,
+        cache_dir=args.cache_dir,
+        padding_side="right",
+        use_fast=True,
+    )
+    if tokenizer._pad_token is None:
+        smart_tokenizer_and_embedding_resize(
+            special_tokens_dict=dict(pad_token=DEFAULT_PAD_TOKEN),
+            tokenizer=tokenizer,
+            model=model,
+        )
+    if isinstance(tokenizer, LlamaTokenizerFast):
+        # LLaMA tokenizer may not have correct special tokens set.
+        # Check and add them if missing to prevent them from being parsed into different tokens.
+        # Note that these are present in the vocabulary.
+        # Note also that `model.config.pad_token_id` is 0 which corresponds to `<unk>` token.
+        if tokenizer.eos_token_id != model.config.eos_token_id or tokenizer.pad_token_id != model.config.pad_token_id or tokenizer.unk_token_id != model.config.unk_token_id:
+            tokenizer.add_special_tokens(
+                {
+                    "eos_token": tokenizer.convert_ids_to_tokens(model.config.eos_token_id),
+                    "bos_token": tokenizer.convert_ids_to_tokens(model.config.bos_token_id),
+                    "unk_token": tokenizer.convert_ids_to_tokens(model.config.pad_token_id),
+                }
+            )
+
+    data_module = make_data_module(tokenizer=tokenizer, args=args)
+    print(data_module)
+    outputs = []
+    from transformers import GenerationConfig
+    with torch.no_grad():
+        conf = GenerationConfig.from_dict(generation_args.__dict__)
+        print(conf)
+        generation_output = model.generate(
+            input_ids=data_module['data_collator'](data_module['predict_dataset'])['input_ids'].to(model.device),
+            generation_config=conf,
+            return_dict_in_generate=True,
+            output_scores=True
+        )
+        s = generation_output.sequences[0]
+        outputs.append(tokenizer.decode(s))
+        print(outputs)
+    with open(os.path.join(args.output_dir, "generate_outputs.json"), "w") as fout:
+        fout.write(json.dumps(outputs, indent=2))
+    return
 
 if __name__ == "__main__":
     train()
