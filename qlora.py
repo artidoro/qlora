@@ -227,7 +227,11 @@ class GenerationArguments:
     diversity_penalty: Optional[float] = field(default=0.0) 
     repetition_penalty: Optional[float] = field(default=1.0) 
     length_penalty: Optional[float] = field(default=1.0)
-    no_repeat_ngram_size: Optional[int] = field(default=0) 
+    no_repeat_ngram_size: Optional[int] = field(default=0)
+
+    def update(self, args):
+        for key, value in args.items():
+            setattr(self, key, value)
 
 def find_all_linear_names(args, model):
     cls = bnb.nn.Linear4bit if args.bits == 4 else (bnb.nn.Linear8bitLt if args.bits == 8 else torch.nn.Linear)
