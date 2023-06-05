@@ -58,6 +58,11 @@ class ModelArguments:
         default=False,
         metadata={"help": "Enable unpickling of arbitrary code in AutoModelForCausalLM#from_pretrained."}
     )
+    merge_and_unload: Optional[bool] = field(
+        default=False,
+        metadata={"help": "Merge the automodel and the peft model."}
+    )
+
 
 @dataclass
 class DataArguments:
@@ -657,6 +662,8 @@ def train():
     data_module = make_data_module(tokenizer=tokenizer, args=args)
     print(data_module)
     if args.eval_only_dataset:
+        if args.merge_and_unload:
+            model.merge_and_unload()
         outputs = []
         from transformers import GenerationConfig
         with torch.no_grad():
