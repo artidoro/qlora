@@ -120,6 +120,47 @@ We provide generations for the models described in the paper for both OA and Vic
 Can you distinguish ChatGPT from Guanaco? Give it a try! 
 You can access [the model response Colab here](https://colab.research.google.com/drive/1kK6xasHiav9nhiRUJjPMZb4fAED4qRHb?usp=sharing) comparing ChatGPT and Guanaco 65B on Vicuna prompts.
 
+## Checkpoint export (`export_hf_checkpoint.py`)
+
+These files contain scripts that merge the LoRA weights back into the base model
+for export to Hugging Face format .
+- Example:
+```bash
+$cd /mnt/e/PycharmProjects/qlora
+$export BASE_MODEL=huggyllama/llama-30b 
+$export LORA_MODEL=/mnt/e/PycharmProjects/qlora/output/guanaco-33b/checkpoint-1500/adapter_model
+$export HF_CHECKPOINT=/mnt/e/PycharmProjects/qlora/output/guanaco-33b/hf
+
+$python export_hf_checkpoint.py
+CUDA SETUP: CUDA runtime path found: /home/hzx/.conda/envs/qlora/lib/libcudart.so.11.0
+CUDA SETUP: Highest compute capability among GPUs detected: 8.9
+CUDA SETUP: Detected CUDA version 118
+CUDA SETUP: Loading binary /home/hzx/.local/lib/python3.10/site-packages/bitsandbytes/libbitsandbytes_cuda118.so...
+Loading checkpoint shards: 100%|█████████████████████████████████████| 7/7 [00:02<00:00,  3.28it/s]total 63533373
+
+
+```
+- If you need to run it directly, you need to copy the three files special_tokens_map.json, tokenizer.model and tokenizer_config.json from the checkpoint-xxxx directory to the /mnt/e/PycharmProjects/qlora/output/guanaco-33b/hf directory to run
+
+- Final Results
+```bash
+$ ls -lrt /mnt/e/PycharmProjects/qlora/output/guanaco-33b/hf
+total 63533869
+-rwxrwxrwx 1 hzx hzx        727 Jun  4 17:26 tokenizer_config.json
+-rwxrwxrwx 1 hzx hzx         96 Jun  4 17:26 special_tokens_map.json
+-rwxrwxrwx 1 hzx hzx     499723 Jun  4 17:26 tokenizer.model
+-rwxrwxrwx 1 hzx hzx        607 Jun  5 22:45 config.json
+-rwxrwxrwx 1 hzx hzx        137 Jun  5 22:45 generation_config.json
+-rwxrwxrwx 1 hzx hzx 9818324627 Jun  5 22:45 pytorch_model-00001-of-00007.bin
+-rwxrwxrwx 1 hzx hzx 9869497721 Jun  5 22:46 pytorch_model-00002-of-00007.bin
+-rwxrwxrwx 1 hzx hzx 9896734097 Jun  5 22:46 pytorch_model-00003-of-00007.bin
+-rwxrwxrwx 1 hzx hzx 9719524707 Jun  5 22:46 pytorch_model-00004-of-00007.bin
+-rwxrwxrwx 1 hzx hzx 9869470481 Jun  5 22:46 pytorch_model-00005-of-00007.bin
+-rwxrwxrwx 1 hzx hzx 9869470445 Jun  5 22:47 pytorch_model-00006-of-00007.bin
+-rwxrwxrwx 1 hzx hzx 6015086981 Jun  5 22:47 pytorch_model-00007-of-00007.bin
+-rwxrwxrwx 1 hzx hzx      50084 Jun  5 22:47 pytorch_model.bin.index.json
+```
+
 ## Evaluation
 We include scripts adapted from the FastChat repo to automatically evaluate model generations using GPT-4. We include script for comparisons relative to ChatGPT with scores out of 10 as well as "pairwise comparisons" with three class labeling (win, loose, or tie). These are found in the `eval` folder.
 
