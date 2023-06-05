@@ -123,6 +123,11 @@ class TrainingArguments(transformers.Seq2SeqTrainingArguments):
         metadata={"help": "Whether to load a trainer checkpoint with the checkpoint_dir or just QLoRA weights from "
                           "adapter_model subdirectory."}
     )
+    force_lora_training: Optional[bool] = field(
+        default=False,
+        metadata={"help": "Whether to force training the LORA layers. "
+                          "(e.g. when loading a checkpoint without trainer checkpoint)"}
+    )
     big_gpu: Optional[bool] = field(
         default=False,
         metadata={"help": "Whether using a big GPU (e.g. 32GB or over)."}
@@ -379,7 +384,7 @@ def get_accelerate_model(args, checkpoint_dir):
                     module = module.to(torch.bfloat16)
     return model
 
-def print_trainable_parameters(args, model):
+def print_trainable_parameters(args, model, make_lora_trainable=False):
     """
     Prints the number of trainable parameters in the model.
     """
@@ -388,6 +393,9 @@ def print_trainable_parameters(args, model):
     for _, param in model.named_parameters():
         all_param += param.numel()
         if param.requires_grad:
+            trainable_params += param.numel()
+        elif make_lora_trainable:
+            param.requires_grad_(True)
             trainable_params += param.numel()
     if args.bits == 4: trainable_params /= 2
     print(f"trainable params: {trainable_params} || all params: {all_param} || trainable: {100 * trainable_params / all_param}")
@@ -641,7 +649,7 @@ def train():
     training_args.skip_loading_checkpoint_weights=True
 
     model.config.use_cache = False
-    print_trainable_parameters(args, model)
+    print_trainable_parameters(args, model, args.force_lora_training)
     print('loaded model')
     set_seed(args.seed)
 
