@@ -95,6 +95,10 @@ class DataArguments:
         default='alpaca',
         metadata={"help": "Which dataset to finetune on. See datamodule for options."}
     )
+    custom_eval_dir: Optional[str] = field(
+        default=None,
+        metadata={"help": "If specified, use this directory for evaluation instead of the default one."}
+    )
     eval_only_dataset: Optional[bool] = field(
         default=False,
         metadata={"help": "Whether when doing evaluation, the entered dataset is entirely evaluation split, no need for"
@@ -299,7 +303,7 @@ def get_accelerate_model(args, checkpoint_dir):
         args.model_name_or_path,
         load_in_4bit=args.bits == 4 and not args.merge_and_unload,
         load_in_8bit=args.bits == 8 and not args.merge_and_unload,
-        device_map="auto" if not args.merge_and_unload else None,
+        device_map="auto" if not args.merge_and_unload else "cpu",
         max_memory=max_memory if not args.merge_and_unload else None,
         quantization_config=BitsAndBytesConfig(
             load_in_4bit=args.bits == 4 and not args.merge_and_unload,
@@ -556,7 +560,10 @@ def make_data_module(tokenizer: transformers.PreTrainedTokenizer, args) -> Dict:
         raise NotImplementedError("Vicuna data was not released.")
     else:
         # Own dataset
-        dataset = load_dataset("json", data_files=args.dataset)
+        if args.custom_eval_dir:
+            dataset = load_dataset("json", data_files={"train": args.dataset, "eval": args.custom_eval_dir})
+        else:
+            dataset = load_dataset("json", data_files=args.dataset, field='train')
         dataset = dataset.map(extract_alpaca_dataset, remove_columns=['instruction'])
 
     # Split train/eval, reduce size
