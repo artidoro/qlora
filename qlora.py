@@ -384,17 +384,19 @@ def get_accelerate_model(args, checkpoint_dir):
                     module = module.to(torch.bfloat16)
     return model
 
-def print_trainable_parameters(args, model, make_lora_trainable=False):
+def print_trainable_parameters(args, model):
     """
     Prints the number of trainable parameters in the model.
     """
     trainable_params = 0
     all_param = 0
+    if args.force_lora_training:
+        print("forcing all lora weights to be trainable")
     for _, param in model.named_parameters():
         all_param += param.numel()
         if param.requires_grad:
             trainable_params += param.numel()
-        elif make_lora_trainable:
+        elif args.force_lora_training:
             param.requires_grad_(True)
             trainable_params += param.numel()
     if args.bits == 4: trainable_params /= 2
@@ -649,7 +651,7 @@ def train():
     training_args.skip_loading_checkpoint_weights=True
 
     model.config.use_cache = False
-    print_trainable_parameters(args, model, args.force_lora_training)
+    print_trainable_parameters(args, model)
     print('loaded model')
     set_seed(args.seed)
 
