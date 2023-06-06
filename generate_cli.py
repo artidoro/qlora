@@ -54,7 +54,7 @@ def main(args):
 
     prompter = Prompter(args.prompt_template)
 
-    for data in dataset:
+    for data in dataset['train']:
         instruction = data['instruction']
         input = data['input']
         prompt = prompter.generate_prompt(instruction, input)
