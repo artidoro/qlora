@@ -216,10 +216,9 @@ class TrainingArguments(transformers.Seq2SeqTrainingArguments):
     save_steps: int = field(default=250, metadata={"help": 'How often to save a model'})
     save_total_limit: int = field(default=40, metadata={"help": 'How many checkpoints to save before the oldest is overwritten'})
     lora_bias: str = field(default=None, metadata={"help": 'Whether to use bias in the lora layers'})
-    originally_distributed: str = field(default=None, metadata={"help": 'Whether the LoRA weights were originally '
-                                                                        'trained in a distributed setting, give '
-                                                                        'single cuda device you\'d like to use '
-                                                                        '(e.g. \'cuda:0\''})
+    originally_distributed: bool = field(default=None, metadata={"help": 'Whether the LoRA weights were originally '
+                                                                        'trained in a distributed setting and trying '
+                                                                        'to train now on a single cuda device'})
 
 @dataclass
 class GenerationArguments:
@@ -678,8 +677,8 @@ def train():
         if os.path.exists(checkpoint_name):
             print(f"Restarting from {checkpoint_name}")
             if args.originally_distributed:
-                print(f"Loading checkpoint with map_location={args.originally_distributed}")
-                adapters_weights = torch.load(checkpoint_name, map_location=args.originally_distributed)
+                print(f"Loading checkpoint with map_location='cuda:0'")
+                adapters_weights = torch.load(checkpoint_name, map_location='cuda:0')
             else:
                 adapters_weights = torch.load(checkpoint_name)
             set_peft_model_state_dict(model, adapters_weights)
