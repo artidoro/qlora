@@ -215,7 +215,7 @@ class TrainingArguments(transformers.Seq2SeqTrainingArguments):
     save_strategy: str = field(default='steps', metadata={"help": 'When to save checkpoints'})
     save_steps: int = field(default=250, metadata={"help": 'How often to save a model'})
     save_total_limit: int = field(default=40, metadata={"help": 'How many checkpoints to save before the oldest is overwritten'})
-    lora_bias: bool = field(default=False, metadata={"help": 'Whether to use bias in the lora layers'})
+    lora_bias: str = field(default=None, metadata={"help": 'Whether to use bias in the lora layers'})
 
 @dataclass
 class GenerationArguments:
@@ -351,7 +351,7 @@ def get_accelerate_model(args, checkpoint_dir):
         lora_alpha=args.lora_alpha,
         target_modules=modules,
         lora_dropout=args.lora_dropout,
-        bias="none" if not args.lora_bias else 'lora_only',
+        bias="none" if not args.lora_bias else args.lora_bias,  # options are: 'all' and 'lora_only'
         task_type="CAUSAL_LM",
     )
     if not args.full_finetune:
