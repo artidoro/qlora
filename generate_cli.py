@@ -52,7 +52,7 @@ def main(args):
     if torch.__version__ >= "2" and sys.platform != "win32" and args.compile:
         model = torch.compile(model)
 
-    prompter = Prompter(args.prompt_template)
+    prompter = Prompter(args.prompt_template, True)
 
     for data in dataset['train']:
         instruction = data['instruction']
@@ -114,7 +114,7 @@ def main_one(args):
     if torch.__version__ >= "2" and sys.platform != "win32" and args.compile:
         model = torch.compile(model)
 
-    prompter = Prompter(args.prompt_template)
+    prompter = Prompter(args.prompt_template, True)
     prompt = prompter.generate_prompt(instruction, input)
 
     input_ids = tokenizer.encode(prompt, return_tensors="pt")
