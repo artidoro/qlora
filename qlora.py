@@ -827,6 +827,10 @@ def train():
         prediction_metrics = prediction_output.metrics
         predictions = prediction_output.predictions
         predictions = np.where(predictions != -100, predictions, tokenizer.pad_token_id)
+
+        print(predictions)
+        print(predictions.shape)
+
         predictions = tokenizer.batch_decode(
             predictions, skip_special_tokens=True, clean_up_tokenization_spaces=True
         )
