@@ -823,7 +823,8 @@ def train():
     # Prediction
     if args.do_predict:
         logger.info("*** Predict ***")
-        prediction_output = trainer.predict(test_dataset=data_module['predict_dataset'],metric_key_prefix="predict")
+        prediction_output = trainer.predict(test_dataset=data_module['predict_dataset'],metric_key_prefix="predict",
+                                            max_length=args.max_length, num_beams=1)
         prediction_metrics = prediction_output.metrics
         predictions = prediction_output.predictions
         predictions = np.where(predictions != -100, predictions, tokenizer.pad_token_id)
@@ -832,7 +833,7 @@ def train():
         print(predictions.shape)
 
         predictions = tokenizer.batch_decode(
-            predictions, skip_special_tokens=True, clean_up_tokenization_spaces=True
+            predictions[0], skip_special_tokens=True, clean_up_tokenization_spaces=True
         )
         with open(os.path.join(args.output_dir, 'predictions.jsonl'), 'w') as fout:
             for i, example in enumerate(data_module['predict_dataset']):
