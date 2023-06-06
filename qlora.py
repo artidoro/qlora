@@ -57,6 +57,10 @@ class ModelArguments:
         default=False,
         metadata={"help": "Enable unpickling of arbitrary code in AutoModelForCausalLM#from_pretrained."}
     )
+    use_auth_token: Optional[bool] = field(
+        default=False,
+        metadata={"help": "Enables using Huggingface auth token from Git Credentials."}
+    )
 
 @dataclass
 class DataArguments:
@@ -287,10 +291,11 @@ def get_accelerate_model(args, checkpoint_dir):
             llm_int8_has_fp16_weight=False,
             bnb_4bit_compute_dtype=compute_dtype,
             bnb_4bit_use_double_quant=args.double_quant,
-            bnb_4bit_quant_type=args.quant_type
+            bnb_4bit_quant_type=args.quant_type,
         ),
         torch_dtype=(torch.float32 if args.fp16 else (torch.bfloat16 if args.bf16 else torch.float32)),
         trust_remote_code=args.trust_remote_code,
+        use_auth_token=args.use_auth_token
     )
     if compute_dtype == torch.float16 and args.bits == 4:
         major, minor = torch.cuda.get_device_capability()
@@ -649,6 +654,7 @@ def train():
         padding_side="right",
         use_fast=False, # Fast tokenizer giving issues.
         tokenizer_type='llama' if 'llama' in args.model_name_or_path else None, # Needed for HF name change
+        use_auth_token=args.use_auth_token,
     )
     if tokenizer._pad_token is None:
         smart_tokenizer_and_embedding_resize(
