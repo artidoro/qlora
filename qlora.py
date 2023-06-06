@@ -826,8 +826,11 @@ def train():
         prediction_output = trainer.predict(test_dataset=data_module['predict_dataset'],metric_key_prefix="predict",
                                             max_length=args.target_max_len, num_beams=1)
         prediction_metrics = prediction_output.metrics
-        predictions = prediction_output.label_ids
+        predictions = np.argmax(prediction_output.predictions, axis=-1)
         predictions = np.where(predictions != -100, predictions, tokenizer.pad_token_id)
+
+        print(predictions)
+        print(predictions.shape)
 
         predictions = tokenizer.batch_decode(
             predictions, skip_special_tokens=True, clean_up_tokenization_spaces=True
