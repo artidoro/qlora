@@ -41,6 +41,7 @@ def main(args):
     tokenizer = LlamaTokenizer.from_pretrained(peft_config.base_model_name_or_path)
     model = PeftModel.from_pretrained(base_model, args.lora_weights, device_map={'': 0})
     print("finetune model is_loaded_in_8bit: ", model.is_loaded_in_8bit)
+    print("finetune model is_loaded_in_4bit: ", model.is_loaded_in_4bit)
     print(model.hf_device_map)
 
     if not args.bits == 4 and not args.bits == 8:
@@ -48,7 +49,7 @@ def main(args):
 
     model.eval()
 
-    if torch.__version__ >= "2" and sys.platform != "win32":
+    if torch.__version__ >= "2" and sys.platform != "win32" and args.compile:
         model = torch.compile(model)
 
     prompter = Prompter(args.prompt_template)
@@ -101,6 +102,7 @@ def main_one(args):
     tokenizer = LlamaTokenizer.from_pretrained(peft_config.base_model_name_or_path)
     model = PeftModel.from_pretrained(base_model, args.lora_weights, device_map={'': 0})
     print("finetune model is_loaded_in_8bit: ", model.is_loaded_in_8bit)
+    print("finetune model is_loaded_in_4bit: ", model.is_loaded_in_4bit)
     print(model.hf_device_map)
 
     if not args.bits == 4 and not args.bits == 8:
@@ -108,7 +110,7 @@ def main_one(args):
 
     model.eval()
 
-    if torch.__version__ >= "2" and sys.platform != "win32":
+    if torch.__version__ >= "2" and sys.platform != "win32" and args.compile:
         model = torch.compile(model)
 
     prompter = Prompter(args.prompt_template)
@@ -130,6 +132,7 @@ if __name__ == "__main__":
     parser.add_argument("--bits", type=int, default=4)
     parser.add_argument("--lora_weights", type=str, default="tloen/alpaca-lora-7b")
     parser.add_argument("--prompt_template", type=str, default="alpaca")
+    parser.add_argument("--compile", type=bool, default=False)
     args = parser.parse_args()
 
     if args.dataset is None:
