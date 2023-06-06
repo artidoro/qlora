@@ -9,6 +9,7 @@ from datasets import load_dataset
 
 def main(args):
     dataset = load_dataset("json", data_files=args.dataset)
+    prompter = Prompter(args.prompt_template, True)
     temperature=0.6
     top_p=0.5
     top_k=40
@@ -51,8 +52,6 @@ def main(args):
 
     if torch.__version__ >= "2" and sys.platform != "win32" and args.compile:
         model = torch.compile(model)
-
-    prompter = Prompter(args.prompt_template, True)
 
     for data in dataset['train']:
         instruction = data['instruction']
