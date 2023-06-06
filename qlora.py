@@ -827,6 +827,7 @@ def train():
                                             max_length=args.target_max_len, num_beams=1)
         prediction_metrics = prediction_output.metrics
         predictions = prediction_output.predictions
+        print(prediction_output.label_ids)
         predictions = np.where(predictions != -100, predictions, tokenizer.pad_token_id)
 
         print(predictions)
