@@ -43,7 +43,7 @@ def main(args):
     print("finetune model is_loaded_in_8bit: ", model.is_loaded_in_8bit)
     print(model.hf_device_map)
 
-    if not args.load_8bit:
+    if not args.bits == 4 and not args.bits == 8:
         model.half()
 
     model.eval()
@@ -103,7 +103,7 @@ def main_one(args):
     print("finetune model is_loaded_in_8bit: ", model.is_loaded_in_8bit)
     print(model.hf_device_map)
 
-    if not args.load_8bit:
+    if not args.bits == 4 and not args.bits == 8:
         model.half()
 
     model.eval()
