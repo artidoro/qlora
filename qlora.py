@@ -396,7 +396,7 @@ def print_trainable_parameters(args, model):
         all_param += param.numel()
         if param.requires_grad:
             trainable_params += param.numel()
-        elif args.force_lora_training:
+        elif args.force_lora_training and 'lora' in param.name:
             param.requires_grad_(True)
             trainable_params += param.numel()
     if args.bits == 4: trainable_params /= 2
