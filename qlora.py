@@ -824,7 +824,7 @@ def train():
     if args.do_predict:
         logger.info("*** Predict ***")
         prediction_output = trainer.predict(test_dataset=data_module['predict_dataset'],metric_key_prefix="predict",
-                                            max_length=args.max_length, num_beams=1)
+                                            max_length=args.target_max_len, num_beams=1)
         prediction_metrics = prediction_output.metrics
         predictions = prediction_output.predictions
         predictions = np.where(predictions != -100, predictions, tokenizer.pad_token_id)
