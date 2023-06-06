@@ -356,9 +356,13 @@ def get_accelerate_model(args, checkpoint_dir):
     if not args.full_finetune:
         if checkpoint_dir is not None:
             print("Loading adapters from checkpoint:" + checkpoint_dir)
+            if args.force_lora_training:
+                print("forcing all lora weights to be trainable")
             model = PeftModel.from_pretrained(model, join(checkpoint_dir, 'adapter_model'))
             for name, p in model.named_parameters():
                 if 'lora' in name:
+                    if args.force_lora_training:
+                        p.requires_grad_(True)
                     print(name, p.sum())
         else:
             print(f'adding LoRA modules...')
@@ -391,15 +395,12 @@ def print_trainable_parameters(args, model):
     """
     trainable_params = 0
     all_param = 0
-    if args.force_lora_training:
-        print("forcing all lora weights to be trainable")
+
     for _, param in model.named_parameters():
         all_param += param.numel()
         if param.requires_grad:
             trainable_params += param.numel()
-        elif args.force_lora_training and 'lora' in param.name:
-            param.requires_grad_(True)
-            trainable_params += param.numel()
+
     if args.bits == 4: trainable_params /= 2
     print(f"trainable params: {trainable_params} || all params: {all_param} || trainable: {100 * trainable_params / all_param}")
 
@@ -806,7 +807,7 @@ def train():
     if args.do_train:
         if args.without_trainer_checkpoint:
             checkpoint_dir = None
-        train_result = trainer.train(resume_from_checkpoint=checkpoint_dir)
+        train_result = trainer.train(resume_from_checkpoint=resume_from_checkpoint)
         metrics = train_result.metrics
         trainer.log_metrics("train", metrics)
         trainer.save_metrics("train", metrics)
