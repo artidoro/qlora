@@ -215,6 +215,7 @@ class TrainingArguments(transformers.Seq2SeqTrainingArguments):
     save_strategy: str = field(default='steps', metadata={"help": 'When to save checkpoints'})
     save_steps: int = field(default=250, metadata={"help": 'How often to save a model'})
     save_total_limit: int = field(default=40, metadata={"help": 'How many checkpoints to save before the oldest is overwritten'})
+    lora_bias: bool = field(default=False, metadata={"help": 'Whether to use bias in the lora layers'})
 
 @dataclass
 class GenerationArguments:
@@ -350,7 +351,7 @@ def get_accelerate_model(args, checkpoint_dir):
         lora_alpha=args.lora_alpha,
         target_modules=modules,
         lora_dropout=args.lora_dropout,
-        bias="none",
+        bias="none" if not args.lora_bias else 'lora_only',
         task_type="CAUSAL_LM",
     )
     if not args.full_finetune:
@@ -828,9 +829,6 @@ def train():
         prediction_metrics = prediction_output.metrics
         predictions = np.argmax(prediction_output.predictions, axis=-1)
         predictions = np.where(predictions != -100, predictions, tokenizer.pad_token_id)
-
-        print(predictions)
-        print(predictions.shape)
 
         predictions = tokenizer.batch_decode(
             predictions, skip_special_tokens=True, clean_up_tokenization_spaces=True
