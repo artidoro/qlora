@@ -104,7 +104,7 @@ class DataArguments:
         metadata={"help": "Whether when doing evaluation, the entered dataset is entirely evaluation split, no need for"
                           " additional train/val/eval split."}
     )
-    test_checkpoint: Optional[bool] = field(
+    test_last_checkpoint: Optional[bool] = field(
         default=False,
         metadata={"help": "Whether to test the last checkpoint or the best checkpoint for eval only."}
     )
@@ -643,7 +643,7 @@ def train():
     )
     
 
-    checkpoint_dir, completed_training = get_last_checkpoint(args.output_dir, args.test_checkpoint)
+    checkpoint_dir, completed_training = get_last_checkpoint(args.output_dir, args.test_last_checkpoint)
     if completed_training:
         print('Detected that training was already completed!')
 
