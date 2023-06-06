@@ -471,7 +471,7 @@ def local_dataset(dataset_name):
     if dataset_name.endswith('.json'):
         full_dataset = Dataset.from_json(path_or_paths=dataset_name)
     elif dataset_name.endswith('.jsonl'):
-        full_dataset = Dataset.from_pandas(pd.read_json(dataset_name, lines=True))
+        full_dataset = Dataset.from_json(filename=dataset_name, format='jsonlines')
     elif dataset_name.endswith('.csv'):
         full_dataset = Dataset.from_pandas(pd.read_csv(dataset_name))
     elif dataset_name.endswith('.tsv'):
