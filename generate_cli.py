@@ -9,7 +9,7 @@ from datasets import load_dataset
 
 def main(args):
     dataset = load_dataset("json", data_files=args.dataset)
-    prompter = Prompter(args.prompt_template, True)
+    prompter = Prompter(args.prompt_template)
     temperature=0.6
     top_p=0.5
     top_k=40
@@ -57,7 +57,6 @@ def main(args):
         instruction = data['instruction']
         input = data['input']
         prompt = prompter.generate_prompt(instruction, input)
-        print("prompt: " + str(prompt))
 
         input_ids = tokenizer.encode(prompt, return_tensors="pt")
         print(input_ids)
@@ -113,7 +112,7 @@ def main_one(args):
     if torch.__version__ >= "2" and sys.platform != "win32" and args.compile:
         model = torch.compile(model)
 
-    prompter = Prompter(args.prompt_template, True)
+    prompter = Prompter(args.prompt_template)
     prompt = prompter.generate_prompt(instruction, input)
 
     input_ids = tokenizer.encode(prompt, return_tensors="pt")
