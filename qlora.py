@@ -678,6 +678,7 @@ def train():
         if os.path.exists(checkpoint_name):
             print(f"Restarting from {checkpoint_name}")
             if args.originally_distributed:
+                print(f"Loading checkpoint with map_location={args.originally_distributed}")
                 adapters_weights = torch.load(checkpoint_name, map_location=args.originally_distributed)
             else:
                 adapters_weights = torch.load(checkpoint_name)
