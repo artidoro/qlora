@@ -32,7 +32,8 @@ def main(args):
     base_model = AutoModelForCausalLM.from_pretrained(
         peft_config.base_model_name_or_path,
         return_dict=True,
-        load_in_8bit=args.load_8bit,
+        load_in_4bit=args.bits == 4,
+        load_in_8bit=args.bits == 8,
         torch_dtype=torch.float16,
         device_map={'': 0},
     )
