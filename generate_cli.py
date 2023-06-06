@@ -14,7 +14,7 @@ def main(args):
     top_p=0.5
     top_k=40
     num_beams=4
-    max_new_tokens=256
+    max_new_tokens=args.max_new_tokens
 
     generation_config = GenerationConfig(
         temperature=temperature,
@@ -73,7 +73,7 @@ def main_one(args):
     top_p=0.5
     top_k=40
     num_beams=4
-    max_new_tokens=256
+    max_new_tokens=args.max_new_tokens
 
     generation_config = GenerationConfig(
         temperature=temperature,
@@ -132,6 +132,7 @@ if __name__ == "__main__":
     parser.add_argument("--lora_weights", type=str, default="tloen/alpaca-lora-7b")
     parser.add_argument("--prompt_template", type=str, default="alpaca")
     parser.add_argument("--compile", type=bool, default=False)
+    parser.add_argument("--max_new_tokens", type=int, default=384)
     args = parser.parse_args()
 
     if args.dataset is None:
