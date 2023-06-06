@@ -58,6 +58,7 @@ def main(args):
         instruction = data['instruction']
         input = data['input']
         prompt = prompter.generate_prompt(instruction, input)
+        print("prompt: " + str(prompt))
 
         input_ids = tokenizer.encode(prompt, return_tensors="pt")
         print(input_ids)
