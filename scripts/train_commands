@@ -6,18 +6,17 @@ CUDA_VISIBLE_DEVICES=1 python qlora.py \
      --custom_eval_dir /data2/gate/users/xingyi/SysRev13b/instruct_cochrane_eval.json \
      --do_train True     --source_max_len 1024     --target_max_len 384 \
      --per_device_train_batch_size 6    --gradient_accumulation_steps 3 \
-     --logging_steps 10     --max_steps 200000     --save_strategy steps     --data_seed 42     --save_steps 5000 \
+     --logging_steps 10     --max_steps 100000     --save_strategy steps     --data_seed 42     --save_steps 2500 \
      --save_total_limit 40     --optim paged_adamw_32bit --without_trainer_checkpoint True --force_lora_training True \
      --lora_bias lora_only
 
 # 7b
-
 CUDA_VISIBLE_DEVICES=1 python qlora.py \
      --model_name_or_path  /data2/gate/users/xingyi/llama7b_hf     --output_dir /data2/gate/users/xingyi/SysRev7b \
      --dataset /data2/gate/users/xingyi/SysRev13b/instruct_cochrane.json \
      --custom_eval_dir /data2/gate/users/xingyi/SysRev13b/instruct_cochrane_eval.json \
      --do_train True     --source_max_len 1024     --target_max_len 384 \
      --per_device_train_batch_size 6    --gradient_accumulation_steps 3 \
-     --logging_steps 10     --max_steps 200000     --save_strategy steps     --data_seed 42     --save_steps 5000 \
+     --logging_steps 10     --max_steps 100000     --save_strategy steps     --data_seed 42     --save_steps 2500 \
      --save_total_limit 40     --optim paged_adamw_32bit --without_trainer_checkpoint True --force_lora_training True \
      --lora_bias lora_only --originally_distributed True
