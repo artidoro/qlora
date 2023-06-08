@@ -472,6 +472,41 @@ def extract_alpaca_dataset(example):
         prompt_format = ALPACA_PROMPT_DICT["prompt_no_input"]
     return {'input': prompt_format.format(**example)}
 
+def extract_vicuna_dataset(example):
+    system="A chat between a curious user and an artificial intelligence assistant. "
+    "The assistant gives helpful, detailed, and polite answers to the user's questions."
+    roles=("USER", "ASSISTANT")
+    roles_mapping = {"human":roles[0], "gpt": roles[1]}
+    seps = [" ", "</s>"]
+
+    messages = []
+    conversations = example["conversations"]
+
+    if conversations[0]['from'].lower() == 'system':
+        system = conversations[0]['value']
+        conversations = conversations[1:]
+
+    if roles_mapping[conversations[0]["from"]] != roles[0]:
+        # Skip the first one if it is not from human
+        conversations = conversations[1:]
+
+    for j, sentence in enumerate(conversations):
+        role = roles_mapping[sentence["from"]]
+        assert role == roles[j % 2], f"{i}"
+        messages.append((role, sentence["value"]))
+
+    ret = system + seps[0]
+    for i, (role, message) in enumerate(messages):
+        if message:
+            ret += role + ": " + message + seps[i % 2]
+        else:
+            ret += role + ":"
+    sep = seps[0] + roles[1] + ": "
+    input, output = ret.rsplit(sep, 1)
+    input += sep
+
+    return {'input': input, 'output': output}
+
 def local_dataset(dataset_name):
     if dataset_name.endswith('.json'):
         full_dataset = Dataset.from_json(path_or_paths=dataset_name)
@@ -563,6 +598,8 @@ def make_data_module(tokenizer: transformers.PreTrainedTokenizer, args) -> Dict:
                 'input': '',
                 'output': x['text'],
             })
+        elif dataset_format == 'vicuna':
+            dataset = dataset.map(extract_vicuna_dataset)
         elif dataset_format == 'input-output':
             # leave as is
             pass
