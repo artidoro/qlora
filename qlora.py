@@ -526,6 +526,10 @@ def make_data_module(tokenizer: transformers.PreTrainedTokenizer, args) -> Dict:
             return load_dataset("akoksal/LongForm")
         elif dataset_name == 'oasst1':
             return load_dataset("timdettmers/openassistant-guanaco")
+        elif dataset_name == 'truehealthai':
+            return load_dataset("aldrinc/TrueHealthQA")
+        elif dataset_name == 'truehealthai-mini':
+            return load_dataset("aldrinc/TrueHealthQA_Mini")
         elif dataset_name == 'vicuna':
             raise NotImplementedError("Vicuna data was not released.")
         else:
