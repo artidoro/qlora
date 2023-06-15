@@ -567,6 +567,16 @@ def make_data_module(tokenizer: transformers.PreTrainedTokenizer, args) -> Dict:
                 'input': '',
                 'output': x['text'],
             })
+        elif dataset_format is None and args.dataset == 'truehealthai':
+            dataset = dataset.map(lambda x: {
+                'input': '',
+                'output': x['text'],
+            })
+        elif dataset_format is None and args.dataset == 'truehealthai-mini':
+            dataset = dataset.map(lambda x: {
+                'input': '',
+                'output': x['text'],
+            })
         elif dataset_format == 'input-output':
             # leave as is
             pass
