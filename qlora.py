@@ -787,12 +787,12 @@ def train():
         trainer.save_state()
         all_metrics.update(metrics)
     # Evaluation
-    # if args.do_eval:
-    #     logger.info("*** Evaluate ***")
-    #     metrics = trainer.evaluate(metric_key_prefix="eval")
-    #     trainer.log_metrics("eval", metrics)
-    #     trainer.save_metrics("eval", metrics)
-    #     all_metrics.update(metrics)
+    if args.do_eval:
+        logger.info("*** Evaluate ***")
+        metrics = trainer.evaluate(metric_key_prefix="eval")
+        trainer.log_metrics("eval", metrics)
+        trainer.save_metrics("eval", metrics)
+        all_metrics.update(metrics)
     # Prediction
     if args.do_predict:
         logger.info("*** Predict ***")
