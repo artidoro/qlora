@@ -287,9 +287,14 @@ class SavePeftModelCallback(transformers.TrainerCallback):
         peft_model_path = os.path.join(checkpoint_folder, "adapter_model")
         kwargs["model"].save_pretrained(peft_model_path)
 
+        print('saving on s3')
+
         s3_bucket = args.aws_s3_bucket
         s3_model_key = f"checkpoints/{PREFIX_CHECKPOINT_DIR}-{state.global_step}/adapter_model"
-        s3.Bucket('user-submitted-docs-prod').upload_file(peft_model_path, s3_bucket, s3_model_key)
+        saved_file = s3.upload_file(peft_model_path, s3_bucket, s3_model_key)
+
+        print('Saved on s3')
+        print(saved_file)
 
         pytorch_model_path = os.path.join(
             checkpoint_folder, "pytorch_model.bin")
