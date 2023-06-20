@@ -127,6 +127,21 @@ class TrainingArguments(transformers.Seq2SeqTrainingArguments):
         metadata={
             "help": "MMLU dataset to use: options are `mmlu-zs` for zero-shot or `mmlu-fs` for few shot."}
     )
+    aws_access_key: Optional[str] = field(
+        default='',
+        metadata={
+            "help": "AWS access key."}
+    )
+    aws_secret_key: Optional[str] = field(
+        default='',
+        metadata={
+            "help": "AWS Secret key."}
+    )
+    aws_s3_bucket: Optional[str] = field(
+        default='',
+        metadata={
+            "help": "AWS Secret bucket."}
+    )
     do_mmlu_eval: Optional[bool] = field(
         default=False,
         metadata={"help": "Whether to run the MMLU evaluation."}
