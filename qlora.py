@@ -14,6 +14,7 @@ from tqdm import tqdm
 import logging
 import bitsandbytes as bnb
 import pandas as pd
+import boto3
 
 import torch
 import transformers
@@ -269,6 +270,12 @@ def find_all_linear_names(args, model):
 
 class SavePeftModelCallback(transformers.TrainerCallback):
     def save_model(self, args, state, kwargs):
+        s3 = boto3.resource(
+            service_name='s3',
+            region_name='us-east-2',
+            aws_access_key_id=args.aws_access_key,
+            aws_secret_access_key=args.aws_secret_key
+        )
         print('Saving PEFT checkpoint...')
         if state.best_model_checkpoint is not None:
             checkpoint_folder = os.path.join(
@@ -279,6 +286,10 @@ class SavePeftModelCallback(transformers.TrainerCallback):
 
         peft_model_path = os.path.join(checkpoint_folder, "adapter_model")
         kwargs["model"].save_pretrained(peft_model_path)
+
+        s3_bucket = args.aws_s3_bucket
+        s3_model_key = f"checkpoints/{PREFIX_CHECKPOINT_DIR}-{state.global_step}/adapter_model"
+        s3.Bucket('user-submitted-docs-prod').upload_file(peft_model_path, s3_bucket, s3_model_key)
 
         pytorch_model_path = os.path.join(
             checkpoint_folder, "pytorch_model.bin")
