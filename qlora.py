@@ -285,9 +285,8 @@ def find_all_linear_names(args, model):
 
 class SavePeftModelCallback(transformers.TrainerCallback):
     def save_model(self, args, state, kwargs):
-        s3 = boto3.resource(
-            service_name='s3',
-            region_name='us-east-2',
+        s3 = boto3.client(
+            's3',
             aws_access_key_id=args.aws_access_key,
             aws_secret_access_key=args.aws_secret_key
         )
