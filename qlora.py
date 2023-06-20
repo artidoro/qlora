@@ -305,7 +305,9 @@ class SavePeftModelCallback(transformers.TrainerCallback):
 
         s3_bucket = args.aws_s3_bucket
         s3_model_key = f"checkpoints/{PREFIX_CHECKPOINT_DIR}-{state.global_step}/adapter_model"
-        saved_file = s3.upload_file(peft_model_path, s3_bucket, s3_model_key)
+        adapter_model_path_s3 = os.path.join(
+            f"{checkpoint_folder}/adapter_model", "adapter_model.bin")
+        saved_file = s3.upload_file(adapter_model_path_s3, s3_bucket, s3_model_key)
 
         print('Saved on s3')
         print(saved_file)
