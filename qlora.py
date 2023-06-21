@@ -97,6 +97,7 @@ sampling = {
 
 
 def format_question(d): 
+    print(d)
     question = d["question"]
     options = d["options"]
     for k, v in options.items(): 
