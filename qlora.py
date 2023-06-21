@@ -302,20 +302,11 @@ class SavePeftModelCallback(transformers.TrainerCallback):
         kwargs["model"].save_pretrained(peft_model_path)
 
         print('saving on s3')
-        
-        hfparser = transformers.HfArgumentParser((
-            ModelArguments, DataArguments, TrainingArguments, GenerationArguments
-        ))
-        model_args, data_args, training_args, generation_args, extra_args = \
-            hfparser.parse_args_into_dataclasses(return_remaining_strings=True)
-        training_args.generation_config = transformers.GenerationConfig(
-            **vars(generation_args))
-        argsenvs = argparse.Namespace(
-            **vars(model_args), **vars(data_args), **vars(training_args)
-        )
+
+        print(args)
 
         s3_bucket = args.aws_s3_bucket
-        s3_model_key = f"{argsenvs.run_name}/{argsenvs.model_name_or_path}/{PREFIX_CHECKPOINT_DIR}-{state.global_step}/adapter_model.bin"
+        s3_model_key = f"{args.run_name}/{PREFIX_CHECKPOINT_DIR}-{state.global_step}/adapter_model.bin"
         adapter_model_path_s3 = os.path.join(
             f"{checkpoint_folder}/adapter_model", "adapter_model.bin")
         saved_file = s3.upload_file(adapter_model_path_s3, s3_bucket, s3_model_key)
