@@ -5,6 +5,9 @@ from collections import defaultdict
 import copy
 import json
 import os
+import re
+import fire
+import string
 from os.path import exists, join, isdir
 from dataclasses import dataclass, field
 import sys
@@ -48,6 +51,88 @@ logger = logging.getLogger(__name__)
 
 IGNORE_INDEX = -100
 DEFAULT_PAD_TOKEN = "[PAD]"
+
+greedy_search = {
+    "num_beams" : 1, 
+    "do_sample" : False,
+    "max_new_tokens" : 128, 
+    "early_stopping" : False
+}
+
+beam_serach = {
+    "num_beams" : 4, 
+    "do_sample" : False,
+    "max_new_tokens" : 128, 
+    "early_stopping" : True,
+}
+
+sampling_top_k = {
+    "do_sample" : True,
+    "num_beams": 1,
+    "max_new_tokens": 128, 
+    "early_stopping": True,
+    "temperature": 0.7,
+    "top_k": 50
+}
+
+sampling_top_p = {
+    "do_sample" : True,
+    "top_k": 0, 
+    "num_beams": 1,
+    "max_new_tokens": 128, 
+    "early_stopping": True,
+    "temperature": 0.7,
+    "top_p": 0.9
+}
+
+sampling = {
+    "do_sample" : True,
+    "top_k": 50, 
+    "num_beams": 1,
+    "max_new_tokens": 128, 
+    "early_stopping": True,
+    "temperature": 0.4,
+    "top_p": 0.9
+}
+
+
+def format_question(d): 
+    question = d["question"]
+    options = d["options"]
+    for k, v in options.items(): 
+        question += f"\n{k}: {v}"
+    return question
+
+
+def strip_special_chars(input_str):
+    "Remove special characters from string start/end"
+    if not input_str:
+        return input_str
+    
+    start_index = 0
+    end_index = len(input_str) - 1
+
+    while start_index < len(input_str) and input_str[start_index] not in string.ascii_letters + string.digits:
+        start_index += 1
+
+    while end_index >= 0 and input_str[end_index] not in string.ascii_letters + string.digits:
+        end_index -= 1
+
+    if start_index <= end_index:
+        return input_str[start_index:end_index + 1]
+    else:
+        return ""
+
+def starts_with_capital_letter(input_str):
+    """
+    The answers should start like this: 
+        'A: '
+        'A. '
+        'A '
+    """
+    pattern = r'^[A-Z](:|\.|) .+'
+    return bool(re.match(pattern, input_str))
+
 
 
 @dataclass
@@ -141,6 +226,10 @@ class TrainingArguments(transformers.Seq2SeqTrainingArguments):
         default='',
         metadata={
             "help": "AWS Secret bucket."}
+    )
+    do_usmle_eval: Optional[bool] = field(
+        default=False,
+        metadata={"help": "Whether to run the USMLE evaluation."}
     )
     do_mmlu_eval: Optional[bool] = field(
         default=False,
@@ -887,6 +976,61 @@ def train():
                 trainer.data_collator.source_max_len = source_max_len
 
         trainer.add_callback(MMLUEvalCallback)
+
+    if args.do_usmle_eval:
+        class usmleEvalCallback(transformers.TrainerCallback):
+            def on_evaluate(
+                self,
+                args,
+                state,
+                control,
+                model,
+                **kwargs
+            ):
+                path_to_exams = 'eval/data/test/'
+                ntries = 5
+                for step_idx in [1, 2, 3]:
+                    with open(
+                        os.path.join(f"data/med.json")
+                    ) as fp:
+                        step = json.load(fp)
+                    outname = os.path.join(
+                        path_to_exams,
+                        f"step{step_idx}_{args.model_name_or_path.split('/')[-1]}.json",
+                    )
+                    if os.path.exists(outname):
+                        with open(outname, "r") as fp:
+                            answers = json.load(fp)
+                    else:
+                        answers = []
+
+                    pbar = tqdm(step)
+                    pbar.set_description_str(f"Evaluating USMLE Step {step_idx}")
+                    for i, question in enumerate(pbar):
+                        if i <= len(answers):
+                            continue
+                        for j in range(ntries):
+                            response = model(
+                                instruction="Answer this multiple choice question.",
+                                input=format_question(question),
+                                output="The Answer to the question is:",
+                                **sampling,
+                            )
+                            response = strip_special_chars(response)
+                            if starts_with_capital_letter(response):
+                                pbar.set_postfix_str(f"")
+                                break
+                            else:
+                                pbar.set_postfix_str(
+                                    f"Output not satisfactoy, retrying {j+1}/{ntries}"
+                                )
+                        question["answer"] = response
+                        answers.append(question)
+                        with open(outname, "w+") as fp:
+                            json.dump(answers, fp)
+                            trainer.log(answers)
+
+        trainer.add_callback(usmleEvalCallback)
 
     # Verifying the datatypes.
     dtypes = {}
