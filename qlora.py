@@ -998,7 +998,7 @@ def train():
                         step = json.load(fp)
                     outname = os.path.join(
                         path_to_exams,
-                        f"step{step_idx}_{args.model_name_or_path.split('/')[-1]}.json",
+                        f"step{step_idx}.json",
                     )
                     if os.path.exists(outname):
                         with open(outname, "r") as fp:
