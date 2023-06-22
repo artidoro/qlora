@@ -1006,12 +1006,12 @@ def train():
                 ntries = 5
                 for step_idx in [1, 2, 3]:
                     with open(
-                        os.path.join(f"data/med.json")
+                        os.path.join(path_to_exams, f"step{step_idx}.json")
                     ) as fp:
                         step = json.load(fp)
                     outname = os.path.join(
                         path_to_exams,
-                        f"step{step_idx}.json",
+                        f"step{step_idx}_solution.json",
                     )
                     if os.path.exists(outname):
                         with open(outname, "r") as fp:
