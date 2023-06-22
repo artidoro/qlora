@@ -1027,7 +1027,7 @@ def train():
                         if i <= len(answers):
                             continue
                         for j in range(ntries):
-                            response = model(
+                            response = trainer.model(
                                 instruction="Answer this multiple choice question.",
                                 input=format_question(question),
                                 output="The Answer to the question is:",
