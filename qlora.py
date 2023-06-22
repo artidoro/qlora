@@ -197,6 +197,10 @@ class TrainingArguments(transformers.Seq2SeqTrainingArguments):
         default='none',
         metadata={"help": "To use wandb or something else for reporting."}
     )
+    hf_access_token: str = field(
+        default='none',
+        metadata={"help": "To access HF private repos"}
+    )
     output_dir: str = field(
         default='./output', metadata={"help": 'The output dir for logs and checkpoints'})
     optim: str = field(default='paged_adamw_32bit', metadata={
@@ -631,6 +635,11 @@ def make_data_module(tokenizer: transformers.PreTrainedTokenizer, args) -> Dict:
             return load_dataset("aldrinc/TrueHealthQA_Mini")
         elif dataset_name == 'truehealthai-instruct':
             return load_dataset("aldrinc/TrueHealthQA_Instruct")
+        elif dataset_name == 'truehealthchat-mini':
+            if hasattr(args, 'hf_access_token') and args.hf_access_token:
+                return load_dataset("truehealth/TrueHealthChat-Mini", use_auth_token=args.hf_access_token)
+            else:
+                    raise ValueError("hf_access_token is required for dataset 'truehealthchat-mini'")
         elif dataset_name == 'vicuna':
             raise NotImplementedError("Vicuna data was not released.")
         else:

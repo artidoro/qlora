@@ -167,3 +167,6 @@ data/training/*
 
 # VSCode Debug
 .vscode
+
+
+*.yaml
