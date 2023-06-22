@@ -404,10 +404,12 @@ class SavePeftModelCallback(transformers.TrainerCallback):
             for file in files:
                 local_file = os.path.join(root, file)
                 s3_file = os.path.join(s3_model_key_prefix, local_file[len(peft_model_path):])
+                s3_file_key = f"{args.run_name}/{PREFIX_CHECKPOINT_DIR}-{state.global_step}/adapter_model{s3_file}"
                 print(local_file)
                 print(s3_file)
-                print(f"Uploading {local_file} to {s3_file}")
-                s3.upload_file(local_file, s3_bucket, s3_file)
+                print(s3_file_key)
+                print(f"Uploading {local_file} to {s3_file_key}")
+                s3.upload_file(local_file, s3_bucket, s3_file_key)
 
         print('Saved on s3')
 
