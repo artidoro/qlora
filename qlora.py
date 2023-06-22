@@ -298,8 +298,7 @@ def get_accelerate_model(args, checkpoint_dir):
         use_auth_token=args.use_auth_token
     )
     if compute_dtype == torch.float16 and args.bits == 4:
-        major, minor = torch.cuda.get_device_capability()
-        if major >= 8:
+        if torch.cuda.is_bf16_supported():
             print('='*80)
             print('Your GPU supports bfloat16, you can accelerate training with the argument --bf16')
             print('='*80)
