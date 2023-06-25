@@ -487,6 +487,23 @@ def local_dataset(dataset_name):
     split_dataset = full_dataset.train_test_split(test_size=0.1)
     return split_dataset
 
+def recursive_load_dataset(dataset_name,name=None,data_files=None,max_try=20):
+    #for some regions and countries, `load_dataset` casually raise ConnectionError, 
+    # so recursively downloading the dataset would make the project more robust.
+    try_turn = 0
+    while True:
+        try:
+            data = load_dataset(dataset_name,name=name,data_files=data_files) 
+            return data
+        except Exception as e:
+            logger.info("Download dataset failed, re-downloading...")
+            try_turn += 1
+            if try_turn > max_try:
+                logger.info("The number of retries exceeded `max_try`,maybe you are offline, please check the network.")
+                raise ConnectionError
+            else:
+                continue
+
 def make_data_module(tokenizer: transformers.PreTrainedTokenizer, args) -> Dict:
     """
     Make dataset and collator for supervised fine-tuning.
@@ -513,19 +530,19 @@ def make_data_module(tokenizer: transformers.PreTrainedTokenizer, args) -> Dict:
     """
     def load_data(dataset_name):
         if dataset_name == 'alpaca':
-            return load_dataset("tatsu-lab/alpaca")
+            return recursive_load_dataset("tatsu-lab/alpaca")
         elif dataset_name == 'alpaca-clean':
-            return load_dataset("yahma/alpaca-cleaned")
+            return recursive_load_dataset("yahma/alpaca-cleaned")
         elif dataset_name == 'chip2':
-            return load_dataset("laion/OIG", data_files='unified_chip2.jsonl')
+            return recursive_load_dataset("laion/OIG", data_files='unified_chip2.jsonl')
         elif dataset_name == 'self-instruct':
-            return load_dataset("yizhongw/self_instruct", name='self_instruct')
+            return recursive_load_dataset("yizhongw/self_instruct", name='self_instruct')
         elif dataset_name == 'hh-rlhf':
-            return load_dataset("Anthropic/hh-rlhf")
+            return recursive_load_dataset("Anthropic/hh-rlhf")
         elif dataset_name == 'longform':
-            return load_dataset("akoksal/LongForm")
+            return recursive_load_dataset("akoksal/LongForm")
         elif dataset_name == 'oasst1':
-            return load_dataset("timdettmers/openassistant-guanaco")
+            return recursive_load_dataset("timdettmers/openassistant-guanaco")
         elif dataset_name == 'vicuna':
             raise NotImplementedError("Vicuna data was not released.")
         else:
