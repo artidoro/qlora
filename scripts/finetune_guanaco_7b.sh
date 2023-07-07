@@ -28,7 +28,7 @@ nohup ds --num_gpus=2 --master_port=9901 qlora.py \
     --warmup_ratio 0.03 \
     --lr_scheduler_type constant \
     --gradient_checkpointing \
-    --dataset oasst1 \
+    --dataset belle_0.5m \
     --source_max_len 16 \
     --target_max_len 512 \
     --per_device_train_batch_size 2 \

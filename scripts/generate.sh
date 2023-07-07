@@ -6,7 +6,7 @@ nohup python qlora.py \
     --do_predict True \
     --predict_with_generate \
     --per_device_eval_batch_size 4 \
-    --dataset alpaca \
+    --dataset belle_0.5m \
     --source_max_len 512 \
     --target_max_len 128 \
     --max_new_tokens 64 \

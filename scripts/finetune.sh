@@ -1,7 +1,7 @@
 nohup python qlora.py \
     --model_name_or_path huggyllama/llama-7b \
     --output_dir ./output \
-    --dataset alpaca \
+    --dataset belle_0.5m \
     --do_train True \
     --do_eval True \
     --do_mmlu_eval True \
