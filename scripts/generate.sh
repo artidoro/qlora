@@ -1,5 +1,5 @@
-python qlora.py \
-    --model_name_or_path EleutherAI/pythia-12b \
+nohup python qlora.py \
+    --model_name_or_path huggyllama/llama-7b \
     --output_dir ./output \
     --do_train False \
     --do_eval False \
@@ -13,3 +13,4 @@ python qlora.py \
     --do_sample \
     --top_p 0.9 \
     --num_beams 1 \
+    >llama_7b_generate.log 2>&1 &

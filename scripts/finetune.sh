@@ -1,5 +1,5 @@
-python qlora.py \
-    --model_name_or_path EleutherAI/pythia-12b \
+nohup python qlora.py \
+    --model_name_or_path huggyllama/llama-7b \
     --output_dir ./output \
     --dataset alpaca \
     --do_train True \
@@ -21,3 +21,4 @@ python qlora.py \
     --max_eval_samples 1000 \
     --eval_steps 1000 \
     --optim paged_adamw_32bit \
+    >full_finetune_llama_7b.log 2>&1 &

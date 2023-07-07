@@ -1,4 +1,4 @@
-python qlora.py \
+nohup ds --num_gpus=2 --master_port=9901 qlora.py \
     --model_name_or_path huggyllama/llama-13b \
     --output_dir ./output/guanaco-13b \
     --logging_steps 10 \
@@ -24,14 +24,14 @@ python qlora.py \
     --double_quant \
     --quant_type nf4 \
     --bf16 \
-    --bits 4 \
+    --bits 8 \
     --warmup_ratio 0.03 \
     --lr_scheduler_type constant \
     --gradient_checkpointing \
     --dataset oasst1 \
     --source_max_len 16 \
     --target_max_len 512 \
-    --per_device_train_batch_size 1 \
+    --per_device_train_batch_size 2 \
     --gradient_accumulation_steps 16 \
     --max_steps 1875 \
     --eval_steps 187 \
@@ -40,4 +40,6 @@ python qlora.py \
     --max_grad_norm 0.3 \
     --lora_dropout 0.05 \
     --weight_decay 0.0 \
-    --seed 0
+    --deepspeed "deepspeed_config.json" \
+    --seed 0 \
+    >guanaco_13b_zero_2.log 2>&1 &

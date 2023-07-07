@@ -185,7 +185,7 @@ class TrainingArguments(transformers.Seq2SeqTrainingArguments):
     save_strategy: str = field(default='steps', metadata={"help": 'When to save checkpoints'})
     save_steps: int = field(default=250, metadata={"help": 'How often to save a model'})
     save_total_limit: int = field(default=40, metadata={"help": 'How many checkpoints to save before the oldest is overwritten'})
-
+    deepspeed: str = field(default=None, metadata={"help":"The path to configuration of deepspeed"})
 @dataclass
 class GenerationArguments:
     # For more hyperparameters check:
@@ -277,26 +277,42 @@ def get_accelerate_model(args, checkpoint_dir):
 
     print(f'loading base model {args.model_name_or_path}...')
     compute_dtype = (torch.float16 if args.fp16 else (torch.bfloat16 if args.bf16 else torch.float32))
-    model = AutoModelForCausalLM.from_pretrained(
-        args.model_name_or_path,
-        cache_dir=args.cache_dir,
-        load_in_4bit=args.bits == 4,
-        load_in_8bit=args.bits == 8,
-        device_map=device_map,
-        max_memory=max_memory,
-        quantization_config=BitsAndBytesConfig(
+    torch_dtype = (torch.float32 if args.fp16 else (torch.bfloat16 if args.bf16 else torch.float32))
+
+    quantization_config=BitsAndBytesConfig(
             load_in_4bit=args.bits == 4,
             load_in_8bit=args.bits == 8,
             llm_int8_threshold=6.0,
             llm_int8_has_fp16_weight=False,
             bnb_4bit_compute_dtype=compute_dtype,
             bnb_4bit_use_double_quant=args.double_quant,
-            bnb_4bit_quant_type=args.quant_type,
-        ),
-        torch_dtype=(torch.float32 if args.fp16 else (torch.bfloat16 if args.bf16 else torch.float32)),
-        trust_remote_code=args.trust_remote_code,
-        use_auth_token=args.use_auth_token
-    )
+            bnb_4bit_quant_type=args.quant_type)
+    
+    if args.deepspeed is None:
+        model = AutoModelForCausalLM.from_pretrained(
+            args.model_name_or_path,
+            cache_dir=args.cache_dir,
+            load_in_4bit=args.bits == 4,
+            load_in_8bit=args.bits == 8,
+            device_map=device_map,
+            max_memory=max_memory,
+            quantization_config=quantization_config,   
+            torch_dtype=torch_dtype,
+            trust_remote_code=args.trust_remote_code,
+            use_auth_token=args.use_auth_token
+        )
+    else:
+        model = AutoModelForCausalLM.from_pretrained(
+            args.model_name_or_path,
+            cache_dir=args.cache_dir,
+            load_in_4bit=args.bits == 4,
+            load_in_8bit=args.bits == 8,
+            quantization_config=quantization_config,   
+            torch_dtype=torch_dtype,
+            trust_remote_code=args.trust_remote_code,
+            use_auth_token=args.use_auth_token
+        )
+
     if compute_dtype == torch.float16 and args.bits == 4:
         major, minor = torch.cuda.get_device_capability()
         if major >= 8:
@@ -307,7 +323,7 @@ def get_accelerate_model(args, checkpoint_dir):
     setattr(model, 'model_parallel', True)
     setattr(model, 'is_parallelizable', True)
 
-    model.config.torch_dtype=(torch.float32 if args.fp16 else (torch.bfloat16 if args.bf16 else torch.float32))
+    model.config.torch_dtype=torch_dtype
 
     if not args.full_finetune:
         model = prepare_model_for_kbit_training(model, use_gradient_checkpointing=args.gradient_checkpointing)
@@ -543,6 +559,8 @@ def make_data_module(tokenizer: transformers.PreTrainedTokenizer, args) -> Dict:
             return recursive_load_dataset("akoksal/LongForm")
         elif dataset_name == 'oasst1':
             return recursive_load_dataset("timdettmers/openassistant-guanaco")
+        elif dataset_name == "belle_0.5m":
+            return recursive_load_dataset("BelleGroup/train_0.5M_CN")
         elif dataset_name == 'vicuna':
             raise NotImplementedError("Vicuna data was not released.")
         else:
