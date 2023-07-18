@@ -309,6 +309,35 @@ def get_accelerate_model(args, checkpoint_dir):
 
     model.config.torch_dtype=(torch.float32 if args.fp16 else (torch.bfloat16 if args.bf16 else torch.float32))
 
+    # Tokenizer
+    tokenizer = AutoTokenizer.from_pretrained(
+        args.model_name_or_path,
+        cache_dir=args.cache_dir,
+        padding_side="right",
+        use_fast=False, # Fast tokenizer giving issues.
+        tokenizer_type='llama' if 'llama' in args.model_name_or_path else None, # Needed for HF name change
+        use_auth_token=args.use_auth_token,
+    )
+    if tokenizer._pad_token is None:
+        smart_tokenizer_and_embedding_resize(
+            special_tokens_dict=dict(pad_token=DEFAULT_PAD_TOKEN),
+            tokenizer=tokenizer,
+            model=model,
+        )
+    if 'llama' in args.model_name_or_path or isinstance(tokenizer, LlamaTokenizer):
+        # LLaMA tokenizer may not have correct special tokens set.
+        # Check and add them if missing to prevent them from being parsed into different tokens.
+        # Note that these are present in the vocabulary.
+        # Note also that `model.config.pad_token_id` is 0 which corresponds to `<unk>` token.
+        print('Adding special tokens.')
+        tokenizer.add_special_tokens({
+                "eos_token": tokenizer.convert_ids_to_tokens(model.config.eos_token_id),
+                "bos_token": tokenizer.convert_ids_to_tokens(model.config.bos_token_id),
+                "unk_token": tokenizer.convert_ids_to_tokens(
+                    model.config.pad_token_id if model.config.pad_token_id != -1 else tokenizer.pad_token_id
+                ),
+        })
+    
     if not args.full_finetune:
         model = prepare_model_for_kbit_training(model, use_gradient_checkpointing=args.gradient_checkpointing)
 
@@ -339,7 +368,7 @@ def get_accelerate_model(args, checkpoint_dir):
             if hasattr(module, 'weight'):
                 if args.bf16 and module.weight.dtype == torch.float32:
                     module = module.to(torch.bfloat16)
-    return model
+    return model, tokenizer
 
 def print_trainable_parameters(args, model):
     """
@@ -369,33 +398,16 @@ def smart_tokenizer_and_embedding_resize(
     """
     num_new_tokens = tokenizer.add_special_tokens(special_tokens_dict)
     model.resize_token_embeddings(len(tokenizer))
-
-    input_embeddings = model.get_input_embeddings()
-    output_embeddings = model.get_output_embeddings()
+    
     if num_new_tokens > 0:
-        input_embeddings_data = input_embeddings.weight.data
-        output_embeddings_data = output_embeddings.weight.data
+        input_embeddings_data = model.get_input_embeddings().weight.data
+        output_embeddings_data = model.get_output_embeddings().weight.data
 
         input_embeddings_avg = input_embeddings_data[:-num_new_tokens].mean(dim=0, keepdim=True)
         output_embeddings_avg = output_embeddings_data[:-num_new_tokens].mean(dim=0, keepdim=True)
 
         input_embeddings_data[-num_new_tokens:] = input_embeddings_avg
         output_embeddings_data[-num_new_tokens:] = output_embeddings_avg
-        model.tie_weights()
-
-    # Temporary bug fix #214: 
-    # freeze embeddings otherwise need to store them with checkpoint
-    input_embeddings.weight.requires_grad = False
-    output_embeddings.weight.requires_grad = False
-    # re-register forward hook
-    if hasattr(model, "enable_input_require_grads"):
-        model.enable_input_require_grads()
-    else:
-
-        def make_inputs_require_grad(module, input, output):
-            output.requires_grad_(True)
-
-        model.get_input_embeddings().register_forward_hook(make_inputs_require_grad)
 
 @dataclass
 class DataCollatorForCausalLM(object):
@@ -656,41 +668,14 @@ def train():
     if completed_training:
         print('Detected that training was already completed!')
 
-    model = get_accelerate_model(args, checkpoint_dir)
+    model, tokenizer = get_accelerate_model(args, checkpoint_dir)
 
     model.config.use_cache = False
     print('loaded model')
     set_seed(args.seed)
 
-    # Tokenizer
-    tokenizer = AutoTokenizer.from_pretrained(
-        args.model_name_or_path,
-        cache_dir=args.cache_dir,
-        padding_side="right",
-        use_fast=False, # Fast tokenizer giving issues.
-        tokenizer_type='llama' if 'llama' in args.model_name_or_path else None, # Needed for HF name change
-        use_auth_token=args.use_auth_token,
-    )
-    if tokenizer._pad_token is None:
-        smart_tokenizer_and_embedding_resize(
-            special_tokens_dict=dict(pad_token=DEFAULT_PAD_TOKEN),
-            tokenizer=tokenizer,
-            model=model,
-        )
-    if 'llama' in args.model_name_or_path or isinstance(tokenizer, LlamaTokenizer):
-        # LLaMA tokenizer may not have correct special tokens set.
-        # Check and add them if missing to prevent them from being parsed into different tokens.
-        # Note that these are present in the vocabulary.
-        # Note also that `model.config.pad_token_id` is 0 which corresponds to `<unk>` token.
-        print('Adding special tokens.')
-        tokenizer.add_special_tokens({
-                "eos_token": tokenizer.convert_ids_to_tokens(model.config.eos_token_id),
-                "bos_token": tokenizer.convert_ids_to_tokens(model.config.bos_token_id),
-                "unk_token": tokenizer.convert_ids_to_tokens(
-                    model.config.pad_token_id if model.config.pad_token_id != -1 else tokenizer.pad_token_id
-                ),
-        })
     data_module = make_data_module(tokenizer=tokenizer, args=args)
+    
     trainer = Seq2SeqTrainer(
         model=model,
         tokenizer=tokenizer,
