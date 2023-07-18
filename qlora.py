@@ -311,8 +311,6 @@ def get_accelerate_model(args, checkpoint_dir):
 
     if not args.full_finetune:
         model = prepare_model_for_kbit_training(model, use_gradient_checkpointing=args.gradient_checkpointing)
-    if args.gradient_checkpointing:
-        model.gradient_checkpointing_enable()
 
     if not args.full_finetune:
         if checkpoint_dir is not None:
@@ -372,15 +370,32 @@ def smart_tokenizer_and_embedding_resize(
     num_new_tokens = tokenizer.add_special_tokens(special_tokens_dict)
     model.resize_token_embeddings(len(tokenizer))
 
+    input_embeddings = model.get_input_embeddings()
+    output_embeddings = model.get_output_embeddings()
     if num_new_tokens > 0:
-        input_embeddings = model.get_input_embeddings().weight.data
-        output_embeddings = model.get_output_embeddings().weight.data
+        input_embeddings_data = input_embeddings.weight.data
+        output_embeddings_data = output_embeddings.weight.data
 
-        input_embeddings_avg = input_embeddings[:-num_new_tokens].mean(dim=0, keepdim=True)
-        output_embeddings_avg = output_embeddings[:-num_new_tokens].mean(dim=0, keepdim=True)
+        input_embeddings_avg = input_embeddings_data[:-num_new_tokens].mean(dim=0, keepdim=True)
+        output_embeddings_avg = output_embeddings_data[:-num_new_tokens].mean(dim=0, keepdim=True)
 
-        input_embeddings[-num_new_tokens:] = input_embeddings_avg
-        output_embeddings[-num_new_tokens:] = output_embeddings_avg
+        input_embeddings_data[-num_new_tokens:] = input_embeddings_avg
+        output_embeddings_data[-num_new_tokens:] = output_embeddings_avg
+        model.tie_weights()
+
+    # Temporary bug fix #214: 
+    # freeze embeddings otherwise need to store them with checkpoint
+    input_embeddings.weight.requires_grad = False
+    output_embeddings.weight.requires_grad = False
+    # re-register forward hook
+    if hasattr(model, "enable_input_require_grads"):
+        model.enable_input_require_grads()
+    else:
+
+        def make_inputs_require_grad(module, input, output):
+            output.requires_grad_(True)
+
+        model.get_input_embeddings().register_forward_hook(make_inputs_require_grad)
 
 @dataclass
 class DataCollatorForCausalLM(object):
@@ -635,6 +650,7 @@ def train():
     args = argparse.Namespace(
         **vars(model_args), **vars(data_args), **vars(training_args)
     )
+    print(args)
 
     checkpoint_dir, completed_training = get_last_checkpoint(args.output_dir)
     if completed_training:
@@ -643,7 +659,6 @@ def train():
     model = get_accelerate_model(args, checkpoint_dir)
 
     model.config.use_cache = False
-    print_trainable_parameters(args, model)
     print('loaded model')
     set_seed(args.seed)
 
@@ -749,7 +764,8 @@ def train():
 
         trainer.add_callback(MMLUEvalCallback)
 
-    # Verifying the datatypes.
+    # Verifying the datatypes and parameter counts before training.
+    print_trainable_parameters(args, model)
     dtypes = {}
     for _, p in model.named_parameters():
         dtype = p.dtype

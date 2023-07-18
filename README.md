@@ -135,7 +135,7 @@ Here a list of known issues and bugs. If your issue is not reported here, please
 3. Currently, using `bnb_4bit_compute_type='fp16'` can lead to instabilities. For 7B LLaMA, only 80% of finetuning runs complete without error. We have solutions, but they are not integrated yet into bitsandbytes.
 4. Make sure that `tokenizer.bos_token_id = 1` to avoid generation issues.
 5. If you get an this [issue](https://github.com/artidoro/qlora/issues/82) ("illegal memory access") then you should use a newer HF LLaMA conversion or downgrade your PyTorch version.
-6. Embeddings need to be stored if you are adding new tokens and finetuning new embeddings. We are currently working on a more general fix that will allow new tokens to be included.
+6. Problems with adding new tokens outlined in #214. Embeddings need to be updated and stored/reloaded if you are adding new tokens.
  
 
 
