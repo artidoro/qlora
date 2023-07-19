@@ -39,7 +39,7 @@ from peft import (
 )
 from peft.tuners.lora import LoraLayer
 from transformers.trainer_utils import PREFIX_CHECKPOINT_DIR
-
+from conversation import get_conv_template
 
 torch.backends.cuda.matmul.allow_tf32 = True
 
@@ -487,6 +487,30 @@ def extract_alpaca_dataset(example):
         prompt_format = ALPACA_PROMPT_DICT["prompt_no_input"]
     return {'input': prompt_format.format(**example)}
 
+
+def extract_fastchat_dataset(example):
+    conv = get_conv_template("vicuna_v1.1", system_prompt=example['system_prompt'])
+    roles = {"human": conv.roles[0], "gpt": conv.roles[1]}
+
+    source = example['conversation']
+    # Apply prompt templates
+    conversations = []
+    if roles[source[0]["from"]] != conv.roles[0]:
+        # Skip the first one if it is not from human
+        source = source[1:]
+
+    conv.messages = []
+    for j, sentence in enumerate(source):
+        role = roles[sentence["from"]]
+        assert role == conv.roles[j % 2], f"{i}"
+        conv.append_message(role, sentence["value"])
+
+    role, output = conv.messages.pop()
+    conv.append_message(role, None)
+
+    prompt = conv.get_prompt()
+    return {'input': prompt, 'output': output}
+
 def local_dataset(dataset_name):
     if dataset_name.endswith('.json'):
         full_dataset = Dataset.from_json(path_or_paths=dataset_name)
@@ -581,6 +605,9 @@ def make_data_module(tokenizer: transformers.PreTrainedTokenizer, args) -> Dict:
         elif dataset_format == 'input-output':
             # leave as is
             pass
+
+        elif dataset_format == 'fastchat':
+            dataset = dataset.map(extract_fastchat_dataset)
         # Remove unused columns.
         dataset = dataset.remove_columns(
             [col for col in dataset.column_names['train'] if col not in ['input', 'output']]
