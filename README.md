@@ -7,8 +7,11 @@
 This repo supports the paper "QLoRA: Efficient Finetuning of Quantized LLMs", an effort to democratize access to LLM research. 
 
 
-
 QLoRA uses [bitsandbytes](https://github.com/TimDettmers/bitsandbytes) for quantization and is integrated with Hugging Face's [PEFT](https://github.com/huggingface/peft) and [transformers](https://github.com/huggingface/transformers/) libraries. QLoRA was developed by members of the [University of Washington's UW NLP group](https://twitter.com/uwnlp?s=20).
+
+## Updates
+- 7/19/2023 - Added LLaMA 2 example script and updated version requirements
+- 7/18/2023 - Fixed non-frozen embeddings when adding new tokens
 
 ## Overview
 
@@ -29,9 +32,8 @@ Guanaco is a system purely intended for research purposes and could produce prob
 You can access [the model response Colab here](https://colab.research.google.com/drive/1kK6xasHiav9nhiRUJjPMZb4fAED4qRHb?usp=sharing) comparing ChatGPT and Guanaco 65B on Vicuna prompts.
 
 
-
 ## Installation
-To load models in 4bits with transformers and bitsandbytes, you have to install accelerate and transformers from source and make sure you have the latest version of the bitsandbytes library (0.39.0). After installing PyTorch (follow instructions [here](https://pytorch.org/get-started/locally/)), you can achieve the above with the following command:
+To load models in 4bits with transformers and bitsandbytes, you have to install accelerate and transformers from source and make sure you have the latest version of the bitsandbytes library. After installing PyTorch (follow instructions [here](https://pytorch.org/get-started/locally/)), you can achieve the above with the following command:
 ```bash
 pip install -U -r requirements.txt
 ```
