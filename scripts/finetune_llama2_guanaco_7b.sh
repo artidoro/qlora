@@ -1,4 +1,4 @@
-CUDA_VISIBLE_DEVICES=0 python qlora.py \
+python qlora.py \
     --model_name_or_path meta-llama/Llama-2-7b-hf \
     --use_auth \
     --output_dir ./output/llama-2-guanaco-7b \
@@ -42,4 +42,3 @@ CUDA_VISIBLE_DEVICES=0 python qlora.py \
     --lora_dropout 0.1 \
     --weight_decay 0.0 \
     --seed 0 \
-    --cache_dir /gscratch/zlab/llama2 
