@@ -337,7 +337,7 @@ def get_accelerate_model(args, checkpoint_dir):
             
     if compute_dtype == torch.float16 and (is_ipex_available() and torch.xpu.is_available()):
         compute_dtype = torch.bfloat16
-        print('Intel XPU does not supports float16 yet, you can accelerate training with the argument --bf16')
+        print('Intel XPU does not support float16 yet, so switching to bfloat16')
 
     setattr(model, 'model_parallel', True)
     setattr(model, 'is_parallelizable', True)
