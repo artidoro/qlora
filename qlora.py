@@ -491,8 +491,10 @@ def extract_alpaca_dataset(example):
     return {'input': prompt_format.format(**example)}
 
 
-def extract_fastchat_dataset(example):
-    conv = get_conv_template("vicuna_v1.1", system_prompt=example['system_prompt'])
+def extract_fastchat_dataset(example, dataset_format):
+    template_name = dataset_format.replace("fastchat-", "") 
+    template_name = "vicuna_v1.1" if template_name == "fastchat" else template_name
+    conv = get_conv_template(template_name, system_prompt=example['system_prompt'])
     roles = {"human": conv.roles[0], "gpt": conv.roles[1]}
 
     source = example['conversation']
@@ -609,8 +611,8 @@ def make_data_module(tokenizer: transformers.PreTrainedTokenizer, args) -> Dict:
             # leave as is
             pass
 
-        elif dataset_format == 'fastchat':
-            dataset = dataset.map(extract_fastchat_dataset)
+        elif dataset_format.startswith('fastchat'):
+            dataset = dataset.map(lambda x: extract_fastchat_dataset(x, dataset_format))
         # Remove unused columns.
         dataset = dataset.remove_columns(
             [col for col in dataset.column_names['train'] if col not in ['input', 'output']]

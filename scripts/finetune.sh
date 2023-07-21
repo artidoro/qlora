@@ -1,8 +1,8 @@
-accelerate launch --num_processes 2  qlora.py \
-    --model_name_or_path /root/autodl-tmp/vicuna-13b-v1.3 \
-    --output_dir /root/autodl-tmp/vicuna-13b-qlora-0720 \
-    --dataset ~/data_merge_20230720.json \
-    --dataset_format fastchat \
+accelerate launch --num_processes 4  qlora.py \
+    --model_name_or_path /root/autodl-tmp/llama-2-13b-chat \
+    --output_dir /root/autodl-tmp/llama-2-13b-chat-qlora-0721 \
+    --dataset /root/data_merge_20230720.json \
+    --dataset_format fastchat-llama-2 \
     --bits 8 \
     --do_train True \
     --do_eval True \
@@ -11,7 +11,7 @@ accelerate launch --num_processes 2  qlora.py \
     --dataloader_num_workers 3 \
     --per_device_train_batch_size 2 \
     --per_device_eval_batch_size 1 \
-    --gradient_accumulation_steps 4 \
+    --gradient_accumulation_steps 2 \
     --logging_steps 10 \
     --max_steps 12000 \
     --save_strategy steps \
