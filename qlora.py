@@ -679,7 +679,10 @@ def train():
     # When using distributed training, the value of the flag find_unused_parameters passed to
     # DistributedDataParallel. Will default to False if gradient checkpointing is used, True otherwise.
     if os.environ.get('LOCAL_RANK') is not None:
-        training_args.ddp_find_unused_parameters = False
+        if training_args.gradient_checkpointing:
+            training_args.ddp_find_unused_parameters = False
+        else:
+            training_args.ddp_find_unused_parameters = True
 
     trainer = Seq2SeqTrainer(
         model=model,
