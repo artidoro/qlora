@@ -1,7 +1,7 @@
-bitsandbytes==0.39.0
-transformers==4.31.0
-peft==0.4.0
-accelerate==0.21.0
+bitsandbytes==0.40.2
+transformers @ git+https://github.com/huggingface/transformers.git
+peft @ git+https://github.com/huggingface/peft.git
+accelerate @ git+https://github.com/huggingface/accelerate.git
 einops==0.6.1
 evaluate==0.4.0
 scikit-learn==1.2.2

@@ -234,6 +234,9 @@ def find_all_linear_names(args, model):
 
 class SavePeftModelCallback(transformers.TrainerCallback):
     def save_model(self, args, state, kwargs):
+        local_rank = int(os.environ.get('LOCAL_RANK', '0'))
+        if local_rank != 0:
+            return
         print('Saving PEFT checkpoint...')
         if state.best_model_checkpoint is not None:
             checkpoint_folder = os.path.join(state.best_model_checkpoint, "adapter_model")
@@ -293,7 +296,7 @@ def get_accelerate_model(args, checkpoint_dir):
             bnb_4bit_use_double_quant=args.double_quant,
             bnb_4bit_quant_type=args.quant_type,
         ),
-        torch_dtype=(torch.float32 if args.fp16 else (torch.bfloat16 if args.bf16 else torch.float32)),
+        torch_dtype=compute_dtype,
         trust_remote_code=args.trust_remote_code,
         use_auth_token=args.use_auth_token
     )
@@ -718,6 +721,7 @@ def train():
                 ),
         })
     data_module = make_data_module(tokenizer=tokenizer, args=args)
+    training_args.ddp_find_unused_parameters = False
     trainer = Seq2SeqTrainer(
         model=model,
         tokenizer=tokenizer,
