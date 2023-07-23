@@ -60,7 +60,7 @@ In addition, here are Colab notebooks with examples for inference and finetuning
 - [Inference notebook](https://colab.research.google.com/drive/1ge2F1QSK8Q7h0hn3YKuBCOAS0bK8E0wf?usp=sharing)
 - [Finetuning notebook](https://colab.research.google.com/drive/1VoYNfYDKcKRQRor98Zbf2-9VQTtGJ24k?usp=sharing)
 
-Other examples are found under the `examples/` folder.
+Other examples are found under the `examples/` folder. We include a generation getting started example with guanaco at `examples/guanaco_generate.py`.
 
 ### Quantization
 Quantization parameters are controlled from the `BitsandbytesConfig` ([see HF documenation](https://huggingface.co/docs/transformers/main_classes/quantization#transformers.BitsAndBytesConfig)) as follows:
