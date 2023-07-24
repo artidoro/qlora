@@ -7,8 +7,11 @@
 This repo supports the paper "QLoRA: Efficient Finetuning of Quantized LLMs", an effort to democratize access to LLM research. 
 
 
-
 QLoRA uses [bitsandbytes](https://github.com/TimDettmers/bitsandbytes) for quantization and is integrated with Hugging Face's [PEFT](https://github.com/huggingface/peft) and [transformers](https://github.com/huggingface/transformers/) libraries. QLoRA was developed by members of the [University of Washington's UW NLP group](https://twitter.com/uwnlp?s=20).
+
+## Updates
+- 7/19/2023 - Added LLaMA 2 example script and updated version requirements
+- 7/18/2023 - Fixed non-frozen embeddings when adding new tokens
 
 ## Overview
 
@@ -29,9 +32,8 @@ Guanaco is a system purely intended for research purposes and could produce prob
 You can access [the model response Colab here](https://colab.research.google.com/drive/1kK6xasHiav9nhiRUJjPMZb4fAED4qRHb?usp=sharing) comparing ChatGPT and Guanaco 65B on Vicuna prompts.
 
 
-
 ## Installation
-To load models in 4bits with transformers and bitsandbytes, you have to install accelerate and transformers from source and make sure you have the latest version of the bitsandbytes library (0.39.0). After installing PyTorch (follow instructions [here](https://pytorch.org/get-started/locally/)), you can achieve the above with the following command:
+To load models in 4bits with transformers and bitsandbytes, you have to install accelerate and transformers from source and make sure you have the latest version of the bitsandbytes library. After installing PyTorch (follow instructions [here](https://pytorch.org/get-started/locally/)), you can achieve the above with the following command:
 ```bash
 pip install -U -r requirements.txt
 ```
@@ -58,7 +60,7 @@ In addition, here are Colab notebooks with examples for inference and finetuning
 - [Inference notebook](https://colab.research.google.com/drive/1ge2F1QSK8Q7h0hn3YKuBCOAS0bK8E0wf?usp=sharing)
 - [Finetuning notebook](https://colab.research.google.com/drive/1VoYNfYDKcKRQRor98Zbf2-9VQTtGJ24k?usp=sharing)
 
-Other examples are found under the `examples/` folder.
+Other examples are found under the `examples/` folder. We include a generation getting started example with guanaco at `examples/guanaco_generate.py`.
 
 ### Quantization
 Quantization parameters are controlled from the `BitsandbytesConfig` ([see HF documenation](https://huggingface.co/docs/transformers/main_classes/quantization#transformers.BitsAndBytesConfig)) as follows:
@@ -135,6 +137,7 @@ Here a list of known issues and bugs. If your issue is not reported here, please
 3. Currently, using `bnb_4bit_compute_type='fp16'` can lead to instabilities. For 7B LLaMA, only 80% of finetuning runs complete without error. We have solutions, but they are not integrated yet into bitsandbytes.
 4. Make sure that `tokenizer.bos_token_id = 1` to avoid generation issues.
 5. If you get an this [issue](https://github.com/artidoro/qlora/issues/82) ("illegal memory access") then you should use a newer HF LLaMA conversion or downgrade your PyTorch version.
+6. Problems with adding new tokens outlined in #214. Embeddings need to be updated and stored/reloaded if you are adding new tokens.
  
 
 
