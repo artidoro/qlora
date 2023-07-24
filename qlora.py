@@ -351,6 +351,7 @@ def get_accelerate_model(args, checkpoint_dir):
         padding_side="right",
         use_fast=False, # Fast tokenizer giving issues.
         tokenizer_type='llama' if 'llama' in args.model_name_or_path else None, # Needed for HF name change
+        trust_remote_code=args.trust_remote_code,
         use_auth_token=args.use_auth_token,
     )
     if tokenizer._pad_token is None:
