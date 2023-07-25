@@ -1,9 +1,9 @@
-accelerate launch --num_processes 4  qlora.py \
+accelerate launch --num_processes 1 qlora.py \
     --model_name_or_path /root/autodl-tmp/llama-2-13b-chat \
-    --output_dir /root/autodl-tmp/llama-2-13b-chat-qlora-0721 \
-    --dataset /root/data_merge_20230720.json \
+    --output_dir /root/autodl-tmp/llama-2-13b-chat-qlora \
+    --dataset /root/autodl-tmp/data/train_data.json \
     --dataset_format fastchat-llama-2 \
-    --bits 8 \
+    --bits 4 \
     --do_train True \
     --do_eval True \
     --source_max_len 512 \
@@ -13,13 +13,13 @@ accelerate launch --num_processes 4  qlora.py \
     --per_device_eval_batch_size 1 \
     --gradient_accumulation_steps 2 \
     --logging_steps 10 \
-    --max_steps 12000 \
+    --max_steps 100 \
     --save_strategy steps \
     --data_seed 42 \
-    --save_steps 500 \
-    --save_total_limit 10 \
+    --save_steps 10 \
+    --save_total_limit 3 \
     --evaluation_strategy steps \
     --eval_dataset_size 512 \
-    --max_eval_samples 500 \
-    --eval_steps 500 \
+    --max_eval_samples 10 \
+    --eval_steps 10 \
     --optim paged_adamw_32bit

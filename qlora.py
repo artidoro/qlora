@@ -39,7 +39,18 @@ from peft import (
 )
 from peft.tuners.lora import LoraLayer
 from transformers.trainer_utils import PREFIX_CHECKPOINT_DIR
+from transformers.integrations import ClearMLCallback
 from conversation import get_conv_template
+
+from clearml import Task
+
+project_name = "llm"  # $PARAM:
+task_name = "training"  # $PARAM:
+
+# from here on everything is logged automatically
+# Connecting ClearML with the current process,
+task = Task.init(project_name=project_name,
+                 task_name=task_name)
 
 torch.backends.cuda.matmul.allow_tf32 = True
 
@@ -47,6 +58,7 @@ logger = logging.getLogger(__name__)
 
 IGNORE_INDEX = -100
 DEFAULT_PAD_TOKEN = "[PAD]"
+
 
 @dataclass
 class ModelArguments:
@@ -492,29 +504,32 @@ def extract_alpaca_dataset(example):
 
 
 def extract_fastchat_dataset(example, dataset_format):
-    template_name = dataset_format.replace("fastchat-", "") 
-    template_name = "vicuna_v1.1" if template_name == "fastchat" else template_name
-    conv = get_conv_template(template_name, system_prompt=example['system_prompt'])
-    roles = {"human": conv.roles[0], "gpt": conv.roles[1]}
+    try:
+        template_name = dataset_format.replace("fastchat-", "") 
+        template_name = "vicuna_v1.1" if template_name == "fastchat" else template_name
+        conv = get_conv_template(template_name, system_prompt=example.get("system_prompt"))
+        roles = {"human": conv.roles[0], "gpt": conv.roles[1]}
 
-    source = example['conversation']
-    # Apply prompt templates
-    conversations = []
-    if roles[source[0]["from"]] != conv.roles[0]:
-        # Skip the first one if it is not from human
-        source = source[1:]
+        source = example['conversation']
+        # Apply prompt templates
+        conversations = []
+        if roles[source[0]["from"]] != conv.roles[0]:
+            # Skip the first one if it is not from human
+            source = source[1:]
 
-    conv.messages = []
-    for j, sentence in enumerate(source):
-        role = roles[sentence["from"]]
-        assert role == conv.roles[j % 2], f"{i}"
-        conv.append_message(role, sentence["value"])
+        conv.messages = []
+        for j, sentence in enumerate(source):
+            role = roles[sentence["from"]]
+            assert role == conv.roles[j % 2], f"{i}"
+            conv.append_message(role, sentence["value"])
 
-    role, output = conv.messages.pop()
-    conv.append_message(role, None)
+        role, output = conv.messages.pop()
+        conv.append_message(role, None)
 
-    prompt = conv.get_prompt()
-    return {'input': prompt, 'output': output}
+        prompt = conv.get_prompt()
+        return {'input': prompt, 'output': output}
+    except:
+        return {'input': '', 'output': ''}
 
 def local_dataset(dataset_name):
     if dataset_name.endswith('.json'):
@@ -613,6 +628,7 @@ def make_data_module(tokenizer: transformers.PreTrainedTokenizer, args) -> Dict:
 
         elif dataset_format.startswith('fastchat'):
             dataset = dataset.map(lambda x: extract_fastchat_dataset(x, dataset_format))
+            dataset = dataset.filter(lambda x: "input" in x)
         # Remove unused columns.
         dataset = dataset.remove_columns(
             [col for col in dataset.column_names['train'] if col not in ['input', 'output']]
@@ -731,6 +747,8 @@ def train():
         **{k:v for k,v in data_module.items() if k != 'predict_dataset'},
     )
 
+    trainer.add_callback(ClearMLCallback())
+
     # Callbacks
     if not args.full_finetune:
         trainer.add_callback(SavePeftModelCallback)
@@ -815,7 +833,8 @@ def train():
         logger.info("*** Train ***")
         # Note: `resume_from_checkpoint` not supported for adapter checkpoints by HF.
         # Currently adapter checkpoint is reloaded as expected but optimizer/scheduler states are not.
-        train_result = trainer.train()
+        checkpoint_dir, completed_training = get_last_checkpoint(args.output_dir)
+        train_result = trainer.train(resume_from_checkpoint=bool(checkpoint_dir) and not completed_training)
         metrics = train_result.metrics
         trainer.log_metrics("train", metrics)
         trainer.save_metrics("train", metrics)
