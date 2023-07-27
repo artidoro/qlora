@@ -2,16 +2,12 @@
 # LICENSE file in the root directory of this source tree.
 
 from collections import defaultdict
-import copy
-import json
-import os
+import copy, json, os, sys, logging, argparse
 from os.path import exists, join, isdir
 from dataclasses import dataclass, field
-import sys
 from typing import Optional, Dict, Sequence
 import numpy as np
 from tqdm import tqdm
-import logging
 import bitsandbytes as bnb
 import pandas as pd
 import importlib
@@ -21,7 +17,6 @@ from packaging.version import parse
 import torch
 import transformers
 from torch.nn.utils.rnn import pad_sequence
-import argparse
 from transformers import (
     AutoTokenizer,
     AutoModelForCausalLM,
@@ -200,7 +195,7 @@ class TrainingArguments(transformers.Seq2SeqTrainingArguments):
     gradient_accumulation_steps: int = field(default=16, metadata={"help": 'How many gradients to accumulate before to perform an optimizer step'})
     max_steps: int = field(default=10000, metadata={"help": 'How many optimizer update steps to take'})
     weight_decay: float = field(default=0.0, metadata={"help": 'The L2 weight decay rate of AdamW'}) # use lora dropout instead for regularization if needed
-    learning_rate: float = field(default=0.0002, metadata={"help": 'The learnign rate'})
+    learning_rate: float = field(default=0.0002, metadata={"help": 'The learning rate'})
     remove_unused_columns: bool = field(default=False, metadata={"help": 'Removed unused columns. Needed to make this codebase work.'})
     max_grad_norm: float = field(default=0.3, metadata={"help": 'Gradient clipping max norm. This is tuned and works well for all models tested.'})
     gradient_checkpointing: bool = field(default=True, metadata={"help": 'Use gradient checkpointing. You want to use this.'})
@@ -326,7 +321,7 @@ def get_accelerate_model(args, checkpoint_dir):
         ),
         torch_dtype=(torch.float32 if args.fp16 else (torch.bfloat16 if args.bf16 else torch.float32)),
         trust_remote_code=args.trust_remote_code,
-        use_auth_token=args.use_auth_token
+        token=args.use_auth_token
     )
     if compute_dtype == torch.float16 and args.bits == 4:
         if torch.cuda.is_bf16_supported():
@@ -351,7 +346,7 @@ def get_accelerate_model(args, checkpoint_dir):
         use_fast=False, # Fast tokenizer giving issues.
         tokenizer_type='llama' if 'llama' in args.model_name_or_path else None, # Needed for HF name change
         trust_remote_code=args.trust_remote_code,
-        use_auth_token=args.use_auth_token,
+        token=args.use_auth_token,
     )
     if tokenizer._pad_token is None:
         smart_tokenizer_and_embedding_resize(
@@ -429,7 +424,7 @@ def smart_tokenizer_and_embedding_resize(
 ):
     """Resize tokenizer and embedding.
 
-    Note: This is the unoptimized version that may make your embedding size not be divisible by 64.
+    Note: This is the un-optimized version that may make your embedding size not be divisible by 64.
     """
     num_new_tokens = tokenizer.add_special_tokens(special_tokens_dict)
     model.resize_token_embeddings(len(tokenizer))
