@@ -212,6 +212,7 @@ class TrainingArguments(transformers.Seq2SeqTrainingArguments):
     save_strategy: str = field(default='steps', metadata={"help": 'When to save checkpoints'})
     save_steps: int = field(default=250, metadata={"help": 'How often to save a model'})
     save_total_limit: int = field(default=40, metadata={"help": 'How many checkpoints to save before the oldest is overwritten'})
+    use_flash_attn: bool = field(default=False, metadata={"help": 'Whether to use flash attention'})
 
 @dataclass
 class GenerationArguments:
@@ -372,7 +373,10 @@ def get_accelerate_model(args, checkpoint_dir):
                     model.config.pad_token_id if model.config.pad_token_id != -1 else tokenizer.pad_token_id
                 ),
         })
-    
+        if args.use_flash_attn:
+            from patch_flash_attn import replace_llama_attn_with_flash_attn
+            replace_llama_attn_with_flash_attn()
+
     if not args.full_finetune:
         model = prepare_model_for_kbit_training(model, use_gradient_checkpointing=args.gradient_checkpointing)
 
