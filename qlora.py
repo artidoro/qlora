@@ -306,6 +306,10 @@ def get_accelerate_model(args, checkpoint_dir):
 
 
     if args.full_finetune: assert args.bits in [16, 32]
+    if 'llama' in args.model_name_or_path or isinstance(tokenizer, LlamaTokenizer):
+        if args.use_flash_attn:
+            from patch_flash_attn import replace_llama_attn_with_flash_attn
+            replace_llama_attn_with_flash_attn()
 
     print(f'loading base model {args.model_name_or_path}...')
     compute_dtype = (torch.float16 if args.fp16 else (torch.bfloat16 if args.bf16 else torch.float32))
@@ -373,9 +377,6 @@ def get_accelerate_model(args, checkpoint_dir):
                     model.config.pad_token_id if model.config.pad_token_id != -1 else tokenizer.pad_token_id
                 ),
         })
-        if args.use_flash_attn:
-            from patch_flash_attn import replace_llama_attn_with_flash_attn
-            replace_llama_attn_with_flash_attn()
 
     if not args.full_finetune:
         model = prepare_model_for_kbit_training(model, use_gradient_checkpointing=args.gradient_checkpointing)
