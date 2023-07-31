@@ -80,18 +80,6 @@ def forward(
 
     past_key_value = (key_states, value_states) if use_cache else None
 
-    # PEFT Int4 support
-    query_states, key_states, value_states = [
-        x.to(torch.bfloat16) for x in [query_states, key_states, value_states]
-    ]
-
-    assert all(
-        (
-            i.dtype in [torch.float16, torch.bfloat16]
-            for i in (query_states, key_states, value_states)
-        )
-    ), "shit not all types"
-
     # Flash attention codes from
     # https://github.com/HazyResearch/flash-attention/blob/main/flash_attn/flash_attention.py
 

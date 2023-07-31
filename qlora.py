@@ -313,7 +313,6 @@ def get_accelerate_model(args, checkpoint_dir):
 
     print(f'loading base model {args.model_name_or_path}...')
     compute_dtype = (torch.float16 if args.fp16 else (torch.bfloat16 if args.bf16 else torch.float32))
-    print("compute_dtype", compute_dtype)
     model = AutoModelForCausalLM.from_pretrained(
         args.model_name_or_path,
         cache_dir=args.cache_dir,
@@ -366,8 +365,6 @@ def get_accelerate_model(args, checkpoint_dir):
             model=model,
         )
     if 'llama' in args.model_name_or_path or isinstance(tokenizer, LlamaTokenizer):
-        if args.use_flash_attn:
-            model.to(compute_dtype)
         # LLaMA tokenizer may not have correct special tokens set.
         # Check and add them if missing to prevent them from being parsed into different tokens.
         # Note that these are present in the vocabulary.
@@ -406,7 +403,10 @@ def get_accelerate_model(args, checkpoint_dir):
             if args.bf16:
                 module = module.to(torch.bfloat16)
         if 'norm' in name:
-            module = module.to(torch.float32)
+            if args.use_flash_attn:
+                module = module.to(torch.bfloat16)
+            else:
+                module = module.to(torch.float32)
         if 'lm_head' in name or 'embed_tokens' in name:
             if hasattr(module, 'weight'):
                 if args.bf16 and module.weight.dtype == torch.float32:
