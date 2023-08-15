@@ -34,6 +34,8 @@ from peft import prepare_model_for_kbit_training, LoraConfig, get_peft_model, Pe
 from peft.tuners.lora import LoraLayer
 from transformers.trainer_utils import PREFIX_CHECKPOINT_DIR
 
+logger = logging.getLogger(__name__)
+
 
 def is_ipex_available():
     def get_major_and_minor_from_version(full_version):
@@ -64,8 +66,6 @@ def is_ipex_available():
 
 if torch.cuda.is_available():
     torch.backends.cuda.matmul.allow_tf32 = True
-
-logger = logging.getLogger(__name__)
 
 IGNORE_INDEX = -100
 DEFAULT_PAD_TOKEN = "[PAD]"
