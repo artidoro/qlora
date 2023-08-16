@@ -1,0 +1,15 @@
+# Copied from https://sbarnea.com/lint/black/
+---
+repos:
+  - repo: https://github.com/python/black.git
+    rev: 23.7.0
+    hooks:
+      - id: black
+        language_version: python3
+  - repo: https://github.com/pycqa/flake8.git
+    rev: 6.1.0
+    hooks:
+      - id: flake8
+        additional_dependencies:
+          - flake8-black>=0.1.1
+        language_version: python3

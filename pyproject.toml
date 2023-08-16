@@ -1,0 +1,3 @@
+# Copied from https://sbarnea.com/lint/black/
+[tool.black]
+skip-string-normalization = true

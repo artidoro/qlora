@@ -167,3 +167,5 @@ data/training/*
 
 # VSCode Debug
 .vscode
+
+*~
