@@ -107,7 +107,7 @@ You can specify the path to your dataset using the `--dataset` argument. If the 
    ```
 
 ### Multi GPU
-Multi GPU training and inference work out-of-the-box with Hugging Face's Accelerate. Note that the `per_device_train_batch_size` and `per_device_eval_batch_size` arguments are  global batch sizes unlike what their name suggest.
+Multi GPU training and inference work out-of-the-box with Hugging Face's Accelerate.
 
 When loading a model for training or inference on multiple GPUs you should pass something like the following to `AutoModelForCausalLM.from_pretrained()`:
 ```python
