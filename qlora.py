@@ -8,7 +8,8 @@ import os
 from os.path import exists, join, isdir
 from dataclasses import dataclass, field
 import sys
-from typing import Optional, Dict, Sequence
+from typing import List, Optional, Tuple, Union, Dict, Sequence
+#from typing import Optional, Dict, Sequence
 import numpy as np
 from tqdm import tqdm
 import logging
@@ -17,6 +18,7 @@ import pandas as pd
 import importlib
 from packaging import version
 from packaging.version import parse
+import math
 
 import torch
 import transformers
@@ -42,7 +44,7 @@ from peft import (
 )
 from peft.tuners.lora import LoraLayer
 from transformers.trainer_utils import PREFIX_CHECKPOINT_DIR
-
+from lba_fc.LBA_ops import LBA_Linear,lba_bmm,calc_bit_mask
 
 def is_ipex_available():
     def get_major_and_minor_from_version(full_version):
@@ -88,6 +90,38 @@ class ModelArguments:
         default=False,
         metadata={"help": "Enables using Huggingface auth token from Git Credentials."}
     )
+    man: int = field(
+        default=7,
+        metadata={"help": "LBA manitsa bits)."},
+    )
+    exp: int = field(
+        default=4,
+        metadata={"help": "LBA exponent bits)."},
+    )
+    chunk_size: int = field(
+        default=16,
+        metadata={"help": "LBA chunk size)."},
+    ) 
+    mode: int = field(
+        default=0,
+        metadata={"help": "LBA mode)."},
+    ) 
+    exp_bias: int = field(
+        default=1,
+        metadata={"help": "LBA exponent bias)."},
+    ) 
+    amode: int = field(
+        default=0,
+        metadata={"help": "LBA amode)."},
+    )
+    eta: float = field(
+        default=1e-8,
+        metadata={"help": "LBA eta)."},
+    )
+    split: int = field(
+        default=1,
+        metadata={"help": "LBA split)."},
+    )                
 
 @dataclass
 class DataArguments:
@@ -685,6 +719,154 @@ def get_last_checkpoint(checkpoint_dir):
         return checkpoint_dir, is_completed # checkpoint found!
     return None, False # first training
 
+class LBA_Matmul(torch.nn.Module):
+    #def __init__(self, man=10, exp=5, chunk_size=16, mode=0, exp_bias=-3, amode=0, eta=1e-8, split=1):
+    def __init__(self, man=7, exp=4, chunk_size=16, mode=0, exp_bias=2, amode=0, eta=1e-8, split=1):
+        super(LBA_Matmul, self).__init__()
+        self.man=man
+        self.bit_mask_man = calc_bit_mask(man)
+        self.exp=exp
+        self.chunk_size=chunk_size
+        self.mode=mode
+        self.exp_bias=exp_bias
+        self.amode=amode
+        self.eta=eta
+        self.split=split
+
+    def forward(self, input1,input2):
+        
+        output = lba_bmm(input1,input2,bit_mask_man=self.bit_mask_man, exp=self.exp, chunk_size=self.chunk_size, mode=self.mode, exp_bias=self.exp_bias, amode=self.amode, eta=self.eta, ways=self.split)
+
+        return output
+
+def qllama_attention_forward(self,
+        hidden_states: torch.Tensor,
+        attention_mask: Optional[torch.Tensor] = None,
+        position_ids: Optional[torch.LongTensor] = None,
+        past_key_value: Optional[Tuple[torch.Tensor]] = None,
+        output_attentions: bool = False,
+        use_cache: bool = False,
+    ) -> Tuple[torch.Tensor, Optional[torch.Tensor], Optional[Tuple[torch.Tensor]]]:
+        bsz, q_len, _ = hidden_states.size()
+
+        if self.config.pretraining_tp > 1:
+            key_value_slicing = (self.num_key_value_heads * self.head_dim) // self.config.pretraining_tp
+            query_slices = self.q_proj.weight.split(
+                (self.num_heads * self.head_dim) // self.config.pretraining_tp, dim=0
+            )
+            key_slices = self.k_proj.weight.split(key_value_slicing, dim=0)
+            value_slices = self.v_proj.weight.split(key_value_slicing, dim=0)
+
+            query_states = [F.linear(hidden_states, query_slices[i]) for i in range(self.config.pretraining_tp)]
+            query_states = torch.cat(query_states, dim=-1)
+
+            key_states = [F.linear(hidden_states, key_slices[i]) for i in range(self.config.pretraining_tp)]
+            key_states = torch.cat(key_states, dim=-1)
+
+            value_states = [F.linear(hidden_states, value_slices[i]) for i in range(self.config.pretraining_tp)]
+            value_states = torch.cat(value_states, dim=-1)
+
+        else:
+            query_states = self.q_proj(hidden_states)
+            key_states = self.k_proj(hidden_states)
+            value_states = self.v_proj(hidden_states)
+
+        query_states = query_states.view(bsz, q_len, self.num_heads, self.head_dim).transpose(1, 2)
+        key_states = key_states.view(bsz, q_len, self.num_key_value_heads, self.head_dim).transpose(1, 2)
+        value_states = value_states.view(bsz, q_len, self.num_key_value_heads, self.head_dim).transpose(1, 2)
+
+        kv_seq_len = key_states.shape[-2]
+        if past_key_value is not None:
+            kv_seq_len += past_key_value[0].shape[-2]
+        cos, sin = self.rotary_emb(value_states, seq_len=kv_seq_len)
+        query_states, key_states = transformers.models.llama.modeling_llama.apply_rotary_pos_emb(query_states, key_states, cos, sin, position_ids)
+
+        if past_key_value is not None:
+            # reuse k, v, self_attention
+            key_states = torch.cat([past_key_value[0], key_states], dim=2)
+            value_states = torch.cat([past_key_value[1], value_states], dim=2)
+
+        past_key_value = (key_states, value_states) if use_cache else None
+
+        # repeat k/v heads if n_kv_heads < n_heads
+        key_states = transformers.models.llama.modeling_llama.repeat_kv(key_states, self.num_key_value_groups)
+        value_states = transformers.models.llama.modeling_llama.repeat_kv(value_states, self.num_key_value_groups)
+
+        #attn_weights = torch.matmul(query_states, key_states.transpose(2, 3)) / math.sqrt(self.head_dim)
+
+        attn_weights = self.qkMatmul(query_states, key_states.transpose(2, 3)) / math.sqrt(self.head_dim)
+    
+        if attn_weights.size() != (bsz, self.num_heads, q_len, kv_seq_len):
+            raise ValueError(
+                f"Attention weights should be of size {(bsz, self.num_heads, q_len, kv_seq_len)}, but is"
+                f" {attn_weights.size()}"
+            )
+
+        if attention_mask is not None:
+            if attention_mask.size() != (bsz, 1, q_len, kv_seq_len):
+                raise ValueError(
+                    f"Attention mask should be of size {(bsz, 1, q_len, kv_seq_len)}, but is {attention_mask.size()}"
+                )
+            attn_weights = attn_weights + attention_mask
+
+        # upcast attention to fp32
+        attn_weights = torch.nn.functional.softmax(attn_weights, dim=-1, dtype=torch.float32).to(query_states.dtype)
+     #   attn_output = torch.matmul(attn_weights, value_states)
+
+        attn_output = self.kvMatmul(attn_weights, value_states)
+
+        if attn_output.size() != (bsz, self.num_heads, q_len, self.head_dim):
+            raise ValueError(
+                f"`attn_output` should be of size {(bsz, self.num_heads, q_len, self.head_dim)}, but is"
+                f" {attn_output.size()}"
+            )
+
+        attn_output = attn_output.transpose(1, 2).contiguous()
+        attn_output = attn_output.reshape(bsz, q_len, self.hidden_size)
+
+        if self.config.pretraining_tp > 1:
+            attn_output = attn_output.split(self.hidden_size // self.config.pretraining_tp, dim=2)
+            o_proj_slices = self.o_proj.weight.split(self.hidden_size // self.config.pretraining_tp, dim=1)
+            attn_output = sum([F.linear(attn_output[i], o_proj_slices[i]) for i in range(self.config.pretraining_tp)])
+        else:
+            attn_output = self.o_proj(attn_output)
+
+        if not output_attentions:
+            attn_weights = None
+
+        return attn_output, attn_weights, past_key_value
+    
+def replace_lora_for_lba(model,man=7, exp=4, chunk_size=16, mode=0, exp_bias=2, amode=0, eta=1e-8, split=1):
+    for name, module in model.named_children():
+        if isinstance(module,torch.nn.Linear) and hasattr(module,'lora_A'):
+
+            #Lora A
+            lbaLinearA = LBA_Linear(module.lora_A['default'].in_features, module.lora_A['default'].out_features, bias= module.lora_A['default'].bias is not None,
+                                 man=man, exp=exp, chunk_size=chunk_size, mode=mode, exp_bias=exp_bias, amode=amode, eta=eta, split=split) 
+            lbaLinearA.weight.data = module.lora_A['default'].weight.data.clone()
+            if module.lora_A['default'].bias is not None:
+                 lbaLinearA.bias.data = module.lora_A['default'].bias.data.clone()
+            lbaLinearA.to(module.lora_A['default'].weight.device)
+            setattr(module, 'lora_A', torch.nn.ModuleDict({'default': lbaLinearA}))
+            #Lora B
+            lbaLinearB = LBA_Linear(module.lora_B['default'].in_features, module.lora_B['default'].out_features, bias= module.lora_B['default'].bias is not None,
+                                    man=man, exp=exp, chunk_size=chunk_size, mode=mode, exp_bias=exp_bias, amode=amode, eta=eta, split=split) 
+            lbaLinearB.weight.data = module.lora_B['default'].weight.data.clone()
+            if module.lora_B['default'].bias is not None:
+                 lbaLinearB.bias.data = module.lora_B['default'].bias.data.clone()
+            lbaLinearB.to(module.lora_B['default'].weight.device)
+            setattr(module, 'lora_B', torch.nn.ModuleDict({'default': lbaLinearB}))
+
+        elif isinstance(module,transformers.models.llama.modeling_llama.LlamaAttention):
+         
+            bound_method = qllama_attention_forward.__get__(module, module.__class__)
+            module.qkMatmul = LBA_Matmul(man=man, exp=exp, chunk_size=chunk_size, mode=mode, exp_bias=exp_bias, amode=amode, eta=eta, split=split)
+            module.kvMatmul = LBA_Matmul(man=man, exp=exp, chunk_size=chunk_size, mode=mode, exp_bias=exp_bias, amode=amode, eta=eta, split=split)
+            setattr(module, 'forward', bound_method)
+                      
+        else:
+            replace_lora_for_lba(module,man=man, exp=exp, chunk_size=chunk_size, mode=mode, exp_bias=exp_bias, amode=amode, eta=eta, split=split)
+
 def train():
     hfparser = transformers.HfArgumentParser((
         ModelArguments, DataArguments, TrainingArguments, GenerationArguments
@@ -702,8 +884,12 @@ def train():
         print('Detected that training was already completed!')
 
     model, tokenizer = get_accelerate_model(args, checkpoint_dir)
-
     model.config.use_cache = False
+    print('Replace adapter to lba version.')
+    print('####',args.man)
+    replace_lora_for_lba(model,man=args.man, exp=args.exp, chunk_size=args.chunk_size, mode=args.mode, exp_bias=args.exp_bias, amode=args.amode, eta=args.eta, split=args.split)
+    print_trainable_parameters(args, model)
+    
     print('loaded model')
     set_seed(args.seed)
 
