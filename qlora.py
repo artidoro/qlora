@@ -725,7 +725,6 @@ def train():
                 'eval': 'data/mmlu/zero_shot_mmlu_val.json',
                 'test': 'data/mmlu/zero_shot_mmlu_test.json',
             })
-            mmlu_dataset = mmlu_dataset.remove_columns('subject')
         # MMLU Five-shot (Eval/Test only)
         elif args.mmlu_dataset == 'mmlu' or args.mmlu_dataset == 'mmlu-fs':
             mmlu_dataset = load_dataset("json", data_files={
